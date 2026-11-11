@@ -296,3 +296,106 @@ async def test_stranger_cannot_use_preview(client, fake_site):
     )
 
     assert resp.status_code == 403
+
+
+# --- regressions from security review ----------------------------------------------
+
+
+async def test_connects_to_the_checked_ip_not_a_second_lookup():
+    """DNS rebinding: a second lookup would return 127.0.0.1, but we never do one."""
+    answers = iter([PUBLIC_IP, "127.0.0.1"])
+    seen: list[httpx.Request] = []
+
+    async def rebinding_resolver(host: str, port: int) -> list[str]:
+        return [next(answers)]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, html=SHOP_HTML)
+
+    page = await fetcher(handler, rebinding_resolver).get(
+        "https://shop.example.com/p/1", max_bytes=10_000, accept="*/*"
+    )
+
+    assert page.url == "https://shop.example.com/p/1"
+    [request] = seen
+    assert request.url.host == PUBLIC_IP
+    assert request.headers["host"] == "shop.example.com"
+    assert request.extensions["sni_hostname"] == "shop.example.com"
+
+
+@pytest.mark.parametrize("address", ["64:ff9b::7f00:1", "::127.0.0.1"])
+async def test_ipv6_tricks_are_refused(address):
+    with pytest.raises(UnsafeUrl):
+        await ensure_public("http://x.example/", resolver_for({"x.example": address}))
+
+
+@pytest.mark.parametrize(
+    "url", ["http://a.example:99999/", "http://a.example:22/", "http://a.example:6379/"]
+)
+async def test_odd_ports_are_refused(url):
+    with pytest.raises(UnsafeUrl):
+        await ensure_public(url, public_resolver)
+
+
+async def test_compressed_response_is_refused():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["accept-encoding"] == "identity"
+        return httpx.Response(200, content=b"\x1f\x8b...", headers={"content-encoding": "gzip"})
+
+    with pytest.raises(FetchFailed):
+        await fetcher(handler).get("https://shop.example.com/", max_bytes=10_000, accept="*/*")
+
+
+@pytest.mark.parametrize("raw", ["NaN", "Infinity", "-Infinity", "sNaN"])
+def test_parse_price_special_values(raw):
+    assert parse_price(raw) is None
+
+
+def test_pathological_json_ld_is_ignored():
+    html = '<script type="application/ld+json">' + "[" * 100_000 + "</script><title>Ok</title>"
+
+    assert parse_preview(html, "https://x.example/").title == "Ok"
+
+
+def test_weird_charset_falls_back_to_utf8():
+    from app.services.link_preview import Fetched, decode_html
+
+    page = Fetched("https://x.example/", "text/html", '<meta charset="idna">Привіт'.encode())
+
+    assert "Привіт" in decode_html(page)
+
+
+def test_header_charset_wins_over_meta():
+    from app.services.link_preview import Fetched, decode_html
+
+    body = '<meta charset="utf-8">Zażółć'.encode("iso-8859-2")
+    page = Fetched("https://x.example/", "text/html", body, charset="iso-8859-2")
+
+    assert "Zażółć" in decode_html(page)
+
+
+async def test_image_proxy_refuses_svg(client):
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+    app.dependency_overrides[get_fetcher] = lambda: fetcher(
+        lambda r: httpx.Response(200, content=svg, headers={"content-type": "image/svg+xml"})
+    )
+    try:
+        resp = await client.get(
+            "/api/link-preview/image", params={"url": "https://x.example/a.svg"}, headers=auth()
+        )
+    finally:
+        app.dependency_overrides.pop(get_fetcher, None)
+
+    assert resp.status_code == 502
+
+
+async def test_image_proxy_sets_defensive_headers(client, fake_site):
+    resp = await client.get(
+        "/api/link-preview/image",
+        params={"url": "https://shop.example.com/img/xm5.png"},
+        headers=auth(),
+    )
+
+    assert resp.headers["content-security-policy"] == "default-src 'none'; sandbox"
+    assert resp.headers["x-content-type-options"] == "nosniff"

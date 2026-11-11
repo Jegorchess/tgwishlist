@@ -25,6 +25,7 @@ TIMEOUT_SECONDS = 8.0
 USER_AGENT = "Mozilla/5.0 (compatible; WishlistPreview/1.0)"
 TITLE_MAX = 200
 PRICE_MAX = Decimal("99999999.99")
+MAX_JSON_LD_CHARS = 200_000
 
 Resolver = Callable[[str, int], Awaitable[list[str]]]
 
@@ -43,9 +44,10 @@ class FetchFailed(PreviewError):
 
 @dataclass(frozen=True)
 class Fetched:
-    url: str
+    url: str  # the logical URL (by host name), after redirects
     content_type: str
     body: bytes
+    charset: str | None = None  # from the Content-Type header
 
 
 @dataclass(frozen=True)
@@ -63,25 +65,77 @@ async def system_resolver(host: str, port: int) -> list[str]:
     return [info[4][0] for info in infos]
 
 
-async def ensure_public(url: str, resolve: Resolver = system_resolver) -> None:
+ALLOWED_PORTS = {80, 443, 8080, 8443}
+# Ranges whose ``is_global`` is True in Python but that can reach local addresses.
+_BLOCKED_V6 = (
+    ipaddress.ip_network("64:ff9b::/96"),  # NAT64 (e.g. 64:ff9b::7f00:1 -> 127.0.0.1)
+    ipaddress.ip_network("::/96"),  # IPv4-compatible (deprecated), e.g. ::127.0.0.1
+)
+
+
+@dataclass(frozen=True)
+class Target:
+    """A checked URL and the exact IP address the connection must go to."""
+
+    url: str
+    scheme: str
+    hostname: str
+    port: int
+    ip: str
+
+
+def _is_public(address: str) -> bool:
+    ip = ipaddress.ip_address(address.split("%")[0])
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
+        elif any(ip in net for net in _BLOCKED_V6):
+            return False
+    return ip.is_global and not ip.is_multicast
+
+
+async def ensure_public(url: str, resolve: Resolver = system_resolver) -> Target:
+    """Validate ``url`` and resolve it ONCE; the caller must connect to ``Target.ip``.
+
+    Connecting by IP (not by name) closes the DNS-rebinding gap between check and use.
+    """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise UnsafeUrl("only http(s) links are supported")
     if parsed.username or parsed.password:
         raise UnsafeUrl("links with credentials are not supported")
-    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    except ValueError as exc:
+        raise UnsafeUrl("invalid port") from exc
+    if port not in ALLOWED_PORTS:
+        raise UnsafeUrl("only standard web ports are supported")
     try:
         addresses = await resolve(parsed.hostname, port)
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         raise FetchFailed("host not found") from exc
     if not addresses:
         raise FetchFailed("host not found")
-    for address in addresses:
-        ip = ipaddress.ip_address(address.split("%")[0])
-        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
-            ip = ip.ipv4_mapped
-        if not ip.is_global or ip.is_multicast:
+    try:
+        if not all(_is_public(a) for a in addresses):
             raise UnsafeUrl("private or local addresses are not allowed")
+    except ValueError as exc:
+        raise UnsafeUrl("invalid address") from exc
+    return Target(url, parsed.scheme, parsed.hostname, port, addresses[0].split("%")[0])
+
+
+def _pinned_request(target: Target) -> tuple[str, dict[str, str], dict[str, str]]:
+    """URL pointing at the checked IP, plus the Host header and TLS server name."""
+    parsed = urlparse(target.url)
+    host = f"[{target.ip}]" if ":" in target.ip else target.ip
+    default_port = 443 if target.scheme == "https" else 80
+    netloc = host if target.port == default_port else f"{host}:{target.port}"
+    pinned = parsed._replace(netloc=netloc).geturl()
+    host_header = (
+        target.hostname if target.port == default_port else f"{target.hostname}:{target.port}"
+    )
+    extensions = {"sni_hostname": target.hostname} if target.scheme == "https" else {}
+    return pinned, {"Host": host_header}, extensions
 
 
 # --- fetching -----------------------------------------------------------------
@@ -105,27 +159,51 @@ class PageFetcher:
             raise FetchFailed("timeout") from exc
 
     async def _get(self, url: str, max_bytes: int, accept: str) -> Fetched:
-        headers = {"User-Agent": USER_AGENT, "Accept": accept, "Accept-Language": "pl,uk;q=0.8"}
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": accept,
+            "Accept-Language": "pl,uk;q=0.8",
+            # No compression: a tiny gzip/brotli chunk could expand to a huge one in memory.
+            "Accept-Encoding": "identity",
+        }
         async with httpx.AsyncClient(
-            transport=self._transport, follow_redirects=False, timeout=TIMEOUT_SECONDS
+            transport=self._transport,
+            follow_redirects=False,
+            timeout=TIMEOUT_SECONDS,
+            trust_env=False,  # no env proxies (would bypass the IP check), no .netrc
         ) as client:
             for _ in range(MAX_REDIRECTS + 1):
-                await ensure_public(url, self._resolve)
+                target = await ensure_public(url, self._resolve)
+                pinned_url, host_header, extensions = _pinned_request(target)
                 try:
-                    async with client.stream("GET", url, headers=headers) as resp:
+                    request = client.build_request(
+                        "GET", pinned_url, headers={**headers, **host_header}, extensions=extensions
+                    )
+                    resp = await client.send(request, stream=True)
+                    try:
                         if resp.is_redirect and "location" in resp.headers:
                             url = urljoin(url, resp.headers["location"])
                             continue
                         if resp.status_code != 200:
                             raise FetchFailed(f"status {resp.status_code}")
+                        # We asked for identity; refuse compressed bodies before reading
+                        # anything, so nothing gets decompressed in memory.
+                        if resp.headers.get("content-encoding", "identity") not in ("identity", ""):
+                            raise FetchFailed("compressed responses are not supported")
                         body = bytearray()
                         async for chunk in resp.aiter_bytes():
                             body.extend(chunk)
                             if len(body) > max_bytes:
                                 raise FetchFailed("response too large")
-                        content_type = resp.headers.get("content-type", "").split(";")[0].strip()
-                        return Fetched(str(resp.url), content_type.lower(), bytes(body))
-                except httpx.HTTPError as exc:
+                        raw_type = resp.headers.get("content-type", "")
+                        content_type = raw_type.split(";")[0].strip().lower()
+                        charset = re.search(r"charset=([\w-]+)", raw_type, re.IGNORECASE)
+                        return Fetched(
+                            url, content_type, bytes(body), charset.group(1) if charset else None
+                        )
+                    finally:
+                        await resp.aclose()
+                except (httpx.HTTPError, httpx.InvalidURL, ValueError) as exc:
                     raise FetchFailed(str(exc)) from exc
         raise FetchFailed("too many redirects")
 
@@ -203,8 +281,12 @@ def parse_price(raw: object) -> Decimal | None:
     else:
         text = text.replace(",", ".")
     try:
-        value = Decimal(text).quantize(Decimal("0.01"))
+        value = Decimal(text)
+        if value.is_finite():
+            value = value.quantize(Decimal("0.01"))
     except InvalidOperation:
+        return None
+    if not value.is_finite():  # "NaN" would break the comparison below
         return None
     return value if Decimal(0) <= value <= PRICE_MAX else None
 
@@ -227,9 +309,11 @@ def parse_preview(html: str, base_url: str) -> Preview:
 
     products: list[dict] = []
     for raw in parser.json_ld:
+        if len(raw) > MAX_JSON_LD_CHARS:
+            continue
         try:
             products += _products(json.loads(raw))
-        except ValueError:
+        except (ValueError, RecursionError):  # broken or absurdly nested JSON
             continue
     product = products[0] if products else {}
 
@@ -266,9 +350,12 @@ def parse_preview(html: str, base_url: str) -> Preview:
 
 
 def decode_html(fetched: Fetched) -> str:
-    match = re.search(rb'charset=["\']?([\w-]+)', fetched.body[:4096])
-    encoding = match.group(1).decode() if match else "utf-8"
+    """Decode with the header charset, else <meta charset>, else UTF-8."""
+    encoding = fetched.charset
+    if not encoding:
+        match = re.search(rb'<meta[^>]+charset=["\']?([\w-]+)', fetched.body[:4096], re.I)
+        encoding = match.group(1).decode() if match else "utf-8"
     try:
         return fetched.body.decode(encoding, errors="replace")
-    except LookupError:
+    except (LookupError, UnicodeError, TypeError):  # unknown or non-text codec (e.g. idna)
         return fetched.body.decode("utf-8", errors="replace")

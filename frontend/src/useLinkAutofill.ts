@@ -24,6 +24,9 @@ export function useLinkAutofill(
   const latest = useRef(0)
 
   useEffect(() => {
+    // The link changed: whatever is in flight for the old one must not fill the form.
+    latest.current++
+    setStatus('idle')
     const link = url.trim()
     if (!enabled || !isHttpUrl(link) || link === lastTried.current) return
     const timer = setTimeout(async () => {

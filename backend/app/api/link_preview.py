@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 from typing import Annotated
 
@@ -17,6 +18,8 @@ from app.services.link_preview import (
 from app.services.photos import MAX_PHOTO_BYTES
 
 router = APIRouter(prefix="/api/link-preview", tags=["link-preview"])
+
+RASTER_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
 
 FetcherDep = Annotated[PageFetcher, Depends(get_fetcher)]
 
@@ -45,7 +48,8 @@ async def link_preview(body: PreviewIn, _: MemberUser, fetcher: FetcherDep) -> P
         return PreviewOut()  # the form simply stays as it is
     if "html" not in page.content_type:
         return PreviewOut()
-    preview = parse_preview(decode_html(page), page.url)
+    # CPU-bound on up to 2 MB of HTML: keep the event loop free.
+    preview = await asyncio.to_thread(parse_preview, decode_html(page), page.url)
     return PreviewOut(title=preview.title, price=preview.price, image_url=preview.image_url)
 
 
@@ -63,10 +67,15 @@ async def link_preview_image(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     except FetchFailed as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Image is not available") from exc
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Not an image")
+    if image.content_type not in RASTER_TYPES:  # no SVG: it's a document, not a photo
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Not a supported image")
     return Response(
         image.body,
         media_type=image.content_type,
-        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+        headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Disposition": "attachment",
+        },
     )
