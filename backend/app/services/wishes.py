@@ -32,6 +32,16 @@ async def create_wish(
     return wish
 
 
+async def list_own_wishes(session: AsyncSession, owner: User) -> list[WishItem]:
+    """Owner's wishes: most wanted first, newest first within the same priority."""
+    result = await session.scalars(
+        select(WishItem)
+        .where(WishItem.owner_id == owner.id)
+        .order_by(WishItem.priority, WishItem.created_at.desc(), WishItem.id.desc())
+    )
+    return list(result)
+
+
 async def get_wish_for_reader(session: AsyncSession, wish_id: int, reader: User) -> WishItem | None:
     """Return the wish if ``reader`` may see it.
 

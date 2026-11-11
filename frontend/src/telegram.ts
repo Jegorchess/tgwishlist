@@ -21,6 +21,7 @@ interface WebApp {
   ready(): void
   expand(): void
   BackButton: BackButton
+  openLink(url: string): void
   HapticFeedback?: { notificationOccurred(type: 'error' | 'success' | 'warning'): void }
 }
 
@@ -63,4 +64,10 @@ export function useBackButton(onBack: () => void): void {
 
 export function haptic(type: 'error' | 'success'): void {
   webApp?.HapticFeedback?.notificationOccurred(type)
+}
+
+/** Open an external link in the browser (Telegram asks for confirmation itself). */
+export function openLink(url: string): void {
+  if (insideTelegram && webApp) webApp.openLink(url)
+  else window.open(url, '_blank', 'noopener,noreferrer')
 }

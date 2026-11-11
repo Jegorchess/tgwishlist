@@ -1,6 +1,7 @@
-"""W-2: adding a wish (issue #4)."""
+"""W-2: adding a wish (issue #4); W-3: listing own wishes (issue #6)."""
 
 import io
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from PIL import Image
@@ -282,3 +283,67 @@ async def test_missing_photo_file_is_404_not_500(client, media_dir):
         f.unlink()
 
     assert (await client.get(f"/api/wishes/{wish['id']}/photo", headers=auth())).status_code == 404
+
+
+# --- listing (W-3, issue #6) --------------------------------------------------
+
+
+async def test_list_is_empty_for_new_user(client):
+    resp = await client.get("/api/wishes", headers=auth())
+
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+async def test_list_requires_auth(client):
+    assert (await client.get("/api/wishes")).status_code == 401
+
+
+async def test_list_sorted_by_priority_then_newest(client, session_factory):
+    for title, priority in [("A", "3"), ("B", "1"), ("C", "2"), ("D", "1"), ("E", "3")]:
+        assert (await add(client, {"title": title, "priority": priority})).status_code == 201
+    # Same-second inserts would tie on created_at; make the order explicit.
+    async with session_factory() as session:
+        for wish in await session.scalars(select(WishItem)):
+            wish.created_at = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(minutes=wish.id)
+        await session.commit()
+
+    titles = [w["title"] for w in (await client.get("/api/wishes", headers=auth())).json()]
+
+    assert titles == ["D", "B", "C", "E", "A"]
+
+
+async def test_list_contains_all_card_fields(client):
+    await add(
+        client,
+        {
+            "title": "Навушники",
+            "price": "4250",
+            "priority": "1",
+            "url": "https://x.pl",
+            "description": "d",
+        },
+        photo=("p.png", image_bytes("PNG"), "image/png"),
+    )
+
+    [wish] = (await client.get("/api/wishes", headers=auth())).json()
+
+    assert wish["title"] == "Навушники"
+    assert wish["price"] == "4250.00"
+    assert wish["priority"] == 1
+    assert wish["url"] == "https://x.pl"
+    assert wish["description"] == "d"
+    assert wish["has_photo"] is True
+    assert "photo_name" not in wish
+    assert "owner_id" not in wish
+
+
+async def test_list_shows_only_own_wishes(client):
+    await add(client, {"title": "Моє"})
+    await add(client, {"title": "Мамине"}, init_data=make_init_data(user=OTHER_USER))
+
+    mine = (await client.get("/api/wishes", headers=auth())).json()
+    hers = (await client.get("/api/wishes", headers=auth(make_init_data(user=OTHER_USER)))).json()
+
+    assert [w["title"] for w in mine] == ["Моє"]
+    assert [w["title"] for w in hers] == ["Мамине"]
