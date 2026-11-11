@@ -92,6 +92,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   me: () => request<Me>('/api/me'),
+  /** AF-1: what a shop page says about the product (any field may be null). */
+  linkPreview: (url: string) =>
+    request<{ title: string | null; price: string | null; image_url: string | null }>(
+      '/api/link-preview',
+      { method: 'POST', body: JSON.stringify({ url }) },
+    ),
+  /** The page's image, proxied by the server (shops don't allow cross-origin fetches). */
+  linkPreviewImage: async (url: string) =>
+    (await send(`/api/link-preview/image?url=${encodeURIComponent(url)}`)).blob(),
   /** Admin only. */
   invite: () => request<{ link: string }>('/api/invite'),
   regenerateInvite: () => request<{ link: string }>('/api/invite/regenerate', { method: 'POST' }),

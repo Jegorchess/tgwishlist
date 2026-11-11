@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api, ApiError, type Wish } from './api'
 import { confirmDialog, haptic, useBackButton } from './telegram'
+import { useLinkAutofill } from './useLinkAutofill'
 import { useWishPhoto } from './WishCard'
 import {
   DESCRIPTION_MAX,
@@ -26,6 +27,8 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
   const editing = wish !== undefined
   const [values, setValues] = useState<WishFormValues>(() => (wish ? fromWish(wish) : emptyWishForm))
   const existingPhoto = useWishPhoto(wish)
+  // Autofill only when adding: an existing wish's fields are already chosen.
+  const autofill = useLinkAutofill(values.url, !editing, setValues)
   const [errors, setErrors] = useState<WishFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -176,6 +179,15 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
           aria-invalid={Boolean(errors.url)}
         />
         {errors.url && <small className="error">{errors.url}</small>}
+        {autofill === 'loading' && <small className="hint">Шукаю дані на сторінці…</small>}
+        {autofill === 'no-price' && (
+          <small className="hint">Ціну на сторінці не знайшли — впиши її вручну</small>
+        )}
+        {autofill === 'failed' && (
+          <small className="hint">
+            Не вдалося отримати дані з цієї сторінки — заповни вручну
+          </small>
+        )}
       </label>
 
       <label className="field">

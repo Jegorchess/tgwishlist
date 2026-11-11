@@ -29,6 +29,8 @@ PROTECTED = [
     ("POST", "/api/wishes/{wish_id}/reservation"),
     ("DELETE", "/api/wishes/{wish_id}/reservation"),
     ("GET", "/api/reservations"),
+    ("POST", "/api/link-preview"),
+    ("GET", "/api/link-preview/image"),
 ]
 
 

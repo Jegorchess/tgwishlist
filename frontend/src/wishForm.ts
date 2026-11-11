@@ -59,7 +59,7 @@ export function normalizePrice(raw: string): string | null {
   return Number(value) <= PRICE_MAX ? value : null
 }
 
-function isHttpUrl(raw: string): boolean {
+export function isHttpUrl(raw: string): boolean {
   if (/\s/.test(raw)) return false
   try {
     const url = new URL(raw)
