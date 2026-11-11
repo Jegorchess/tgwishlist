@@ -28,7 +28,6 @@ async def create_wish(
     )
     session.add(wish)
     await session.commit()
-    await session.refresh(wish)
     return wish
 
 
@@ -50,3 +49,55 @@ async def get_wish_for_reader(session: AsyncSession, wish_id: int, reader: User)
     return await session.scalar(
         select(WishItem).where(WishItem.id == wish_id, WishItem.owner_id == reader.id)
     )
+
+
+async def get_own_wish(session: AsyncSession, wish_id: int, owner: User) -> WishItem | None:
+    """The wish only if ``owner`` created it: changing and deleting is owner-only.
+
+    The row is locked until commit, so two overlapping edits can't both replace the photo
+    and leave one file orphaned.
+    """
+    return await session.scalar(
+        select(WishItem)
+        .where(WishItem.id == wish_id, WishItem.owner_id == owner.id)
+        .with_for_update()
+    )
+
+
+async def update_wish(
+    session: AsyncSession,
+    wish: WishItem,
+    *,
+    title: str,
+    price: Decimal | None,
+    priority: Priority,
+    url: str | None,
+    description: str | None,
+    new_photo_name: str | None,
+    remove_photo: bool,
+) -> str | None:
+    """Replace the wish's fields and commit.
+
+    Returns the name of a photo file that is no longer used. The caller refreshes ``wish``.
+    """
+    wish.title = title
+    wish.price = price
+    wish.priority = priority
+    wish.url = url
+    wish.description = description
+    old_photo = wish.photo_name
+    if new_photo_name:
+        wish.photo_name = new_photo_name
+    elif remove_photo:
+        wish.photo_name = None
+    unused = old_photo if old_photo != wish.photo_name else None
+    await session.commit()
+    return unused
+
+
+async def delete_wish(session: AsyncSession, wish: WishItem) -> str | None:
+    """Delete the wish. Returns its photo file name so the caller can remove the file."""
+    photo = wish.photo_name
+    await session.delete(wish)
+    await session.commit()
+    return photo

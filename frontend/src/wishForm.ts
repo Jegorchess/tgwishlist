@@ -1,5 +1,5 @@
 // Validation rules of the "add wish" form. They mirror the backend (app/api/wishes.py).
-import type { Priority } from './api'
+import type { Priority, Wish } from './api'
 
 export const TITLE_MAX = 200
 export const DESCRIPTION_MAX = 1000
@@ -21,7 +21,10 @@ export interface WishFormValues {
   priority: Priority
   url: string
   description: string
+  /** A newly picked file. */
   photo: File | null
+  /** Editing only: keep the photo the wish already has (when no new file is picked). */
+  keepPhoto: boolean
 }
 
 export type WishFormErrors = Partial<Record<keyof WishFormValues, string>>
@@ -33,6 +36,20 @@ export const emptyWishForm: WishFormValues = {
   url: '',
   description: '',
   photo: null,
+  keepPhoto: false,
+}
+
+/** Prefill the form with an existing wish. */
+export function fromWish(w: Wish): WishFormValues {
+  return {
+    title: w.title,
+    price: w.price === null ? '' : w.price.replace('.', ','),
+    priority: w.priority,
+    url: w.url ?? '',
+    description: w.description ?? '',
+    photo: null,
+    keepPhoto: w.has_photo,
+  }
 }
 
 /** "12,50" -> "12.50"; returns null when the value is not a valid price. */
@@ -79,7 +96,7 @@ export function validateWish(v: WishFormValues): WishFormErrors {
   return errors
 }
 
-export function toFormData(v: WishFormValues): FormData {
+export function toFormData(v: WishFormValues, editing: boolean): FormData {
   const form = new FormData()
   form.append('title', v.title.trim())
   if (v.price.trim()) form.append('price', normalizePrice(v.price) ?? v.price)
@@ -87,5 +104,6 @@ export function toFormData(v: WishFormValues): FormData {
   if (v.url.trim()) form.append('url', v.url.trim())
   if (v.description.trim()) form.append('description', v.description.trim())
   if (v.photo) form.append('photo', v.photo)
+  else if (editing && !v.keepPhoto) form.append('remove_photo', 'true')
   return form
 }

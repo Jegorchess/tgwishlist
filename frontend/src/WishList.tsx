@@ -6,9 +6,10 @@ interface Props {
   error: boolean
   onRetry: () => void
   onAdd: () => void
+  onOpen: (wish: Wish) => void
 }
 
-export default function WishList({ wishes, error, onRetry, onAdd }: Props) {
+export default function WishList({ wishes, error, onRetry, onAdd, onOpen }: Props) {
   if (error) {
     return (
       <section className="wish-list-state">
@@ -45,9 +46,10 @@ export default function WishList({ wishes, error, onRetry, onAdd }: Props) {
         ➕ Додати бажання
       </button>
       <h2 className="section-title">Мої бажання</h2>
+      <p className="hint small">Натисни на бажання, щоб змінити або видалити його</p>
       <div className="wish-list">
         {wishes.map((w) => (
-          <WishCard key={w.id} wish={w} />
+          <WishCard key={w.id} wish={w} onOpen={onOpen} />
         ))}
       </div>
     </section>
