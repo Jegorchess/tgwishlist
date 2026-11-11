@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type OthersWish, type Person, type Reservation } from './api'
 import Avatar from './Avatar'
-import { fullName } from './PeopleList'
+import { fullName, wishCountLabel } from './PeopleList'
+import { filterWishes, SEARCH_THRESHOLD, SearchBox } from './search'
 import { insideTelegram, useBackButton } from './telegram'
 import ReservationControl from './ReservationControl'
 import WishCard from './WishCard'
@@ -15,6 +16,7 @@ interface Props {
 export default function PersonWishes({ person, onBack }: Props) {
   const [wishes, setWishes] = useState<OthersWish[] | null>(null)
   const [error, setError] = useState(false)
+  const [query, setQuery] = useState('')
 
   useBackButton(onBack)
 
@@ -51,12 +53,15 @@ export default function PersonWishes({ person, onBack }: Props) {
     }
   }, [load])
 
+  const shown = wishes ? filterWishes(wishes, query) : []
+
   return (
     <section>
-      <div className="profile">
-        <Avatar name={person.first_name} photoUrl={person.photo_url} />
+      <header className="person-header">
+        <Avatar name={person.first_name} photoUrl={person.photo_url} size={88} />
         <h2 className="person-title">{fullName(person)}</h2>
-      </div>
+        <p className="hint">{wishCountLabel(wishes?.length ?? person.wish_count)}</p>
+      </header>
 
       {error && (
         <div className="wish-list-state">
@@ -74,9 +79,17 @@ export default function PersonWishes({ person, onBack }: Props) {
       {wishes && wishes.length === 0 && (
         <p className="hint wish-list-state">Поки що тут немає бажань</p>
       )}
-      {wishes && wishes.length > 0 && (
+      {wishes && wishes.length > SEARCH_THRESHOLD && (
+        <SearchBox value={query} onChange={setQuery} />
+      )}
+      {wishes && wishes.length > 0 && shown.length === 0 && (
+        <p className="hint wish-list-state" role="status">
+          Нічого не знайдено
+        </p>
+      )}
+      {shown.length > 0 && (
         <div className="wish-list person-wishes">
-          {wishes.map((w) => (
+          {shown.map((w) => (
             <WishCard
               key={w.id}
               wish={w}

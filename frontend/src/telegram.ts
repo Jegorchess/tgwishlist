@@ -14,6 +14,18 @@ interface BackButton {
   offClick(cb: () => void): void
 }
 
+interface MainButton {
+  setText(text: string): void
+  show(): void
+  hide(): void
+  enable(): void
+  disable(): void
+  showProgress(leaveActive?: boolean): void
+  hideProgress(): void
+  onClick(cb: () => void): void
+  offClick(cb: () => void): void
+}
+
 interface WebApp {
   initData: string
   initDataUnsafe: { user?: WebAppUser; start_param?: string }
@@ -21,6 +33,7 @@ interface WebApp {
   ready(): void
   expand(): void
   BackButton: BackButton
+  MainButton: MainButton
   openLink(url: string): void
   openTelegramLink(url: string): void
   showPopup(
@@ -48,6 +61,8 @@ export const insideTelegram = Boolean(webApp?.initData)
 export function initTelegram(): void {
   webApp?.ready()
   webApp?.expand()
+  // Lets CSS apply browser-only fallbacks (e.g. OS dark mode) outside Telegram.
+  if (insideTelegram) document.documentElement.dataset.tg = '1'
 }
 
 /** Value for the Authorization header understood by the backend. */
@@ -104,4 +119,41 @@ export function confirmDialog(message: string, confirmText: string): Promise<boo
 export function openTelegramLink(url: string): void {
   if (insideTelegram && webApp) webApp.openTelegramLink(url)
   else window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+/** True when Telegram's native bottom button is available (the page hides its own then). */
+export const hasMainButton = insideTelegram && Boolean(webApp?.MainButton)
+
+/** Telegram's native bottom button while mounted; no-op in a plain browser. */
+export function useMainButton(
+  text: string,
+  onClick: () => void,
+  { progress, disabled }: { progress: boolean; disabled: boolean },
+): void {
+  useEffect(() => {
+    const button = hasMainButton ? webApp!.MainButton : undefined
+    if (!button) return
+    button.setText(text)
+    button.show()
+    button.onClick(onClick)
+    return () => {
+      button.offClick(onClick)
+    }
+  }, [text, onClick])
+
+  useEffect(() => {
+    const button = hasMainButton ? webApp!.MainButton : undefined
+    if (!button) return
+    if (progress) button.showProgress()
+    else button.hideProgress()
+    if (disabled) button.disable()
+    else button.enable()
+  }, [progress, disabled])
+
+  // Hide only when the screen goes away (not on every text/handler change).
+  useEffect(() => {
+    return () => {
+      if (hasMainButton) webApp!.MainButton.hide()
+    }
+  }, [])
 }

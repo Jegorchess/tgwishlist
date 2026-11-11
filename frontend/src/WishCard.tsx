@@ -67,7 +67,7 @@ export default function WishCard({ wish, onOpen, footer }: Props) {
   return (
     // The title button is stretched over the whole card (CSS ::after), so tapping anywhere
     // opens editing; the description toggle and the link sit above it as separate controls.
-    <article className="wish-card">
+    <article className={onOpen ? 'wish-card clickable' : 'wish-card'}>
       <WishPhoto wish={wish} />
       <div className="wish-body">
         <h3 className="wish-title">
