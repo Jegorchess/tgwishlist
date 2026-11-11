@@ -85,3 +85,16 @@ class Invite(Base):
     code: Mapped[str] = mapped_column(String(64), unique=True)
     active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Reservation(Base):
+    """«Я дарую»: one gifter per wish. Never shown to the wish's owner."""
+
+    __tablename__ = "reservations"
+
+    # The primary key on wish_id guarantees a single reservation per wish.
+    wish_id: Mapped[int] = mapped_column(
+        ForeignKey("wish_items.id", ondelete="CASCADE"), primary_key=True
+    )
+    reserver_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

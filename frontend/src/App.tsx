@@ -3,6 +3,7 @@ import { api, type Me, type Person, type Wish } from './api'
 import Avatar from './Avatar'
 import { insideTelegram } from './telegram'
 import InviteCard from './InviteCard'
+import MyReservations from './MyReservations'
 import PeopleList from './PeopleList'
 import PersonWishes from './PersonWishes'
 import WishEditor from './WishEditor'
@@ -159,7 +160,10 @@ export default function App() {
               onOpen={openEditWish}
             />
           ) : (
-            <PeopleList onOpen={openPerson} />
+            <>
+              <MyReservations onOpen={openPerson} />
+              <PeopleList onOpen={openPerson} />
+            </>
           )}
         </>
       )}

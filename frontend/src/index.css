@@ -514,3 +514,51 @@ label.link {
 .back-button {
   margin-top: 24px;
 }
+
+/* --- reservations ---------------------------------------------------------- */
+.card-footer {
+  width: 100%;
+}
+
+.reservation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.reserve-button {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.reservation-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reservation-mine {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.reservation-taken {
+  color: var(--hint);
+  font-size: 0.9rem;
+}
+
+.reservation-owner {
+  display: block;
+  font-weight: 400;
+}
+
+.my-reservations .section-title {
+  margin-top: 16px;
+}

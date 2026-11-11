@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api, type Wish } from './api'
 import { openLink } from './telegram'
 import { PRIORITIES } from './wishForm'
@@ -56,9 +56,11 @@ interface Props {
   wish: Wish
   /** Tap on the card opens editing; omit for read-only cards (someone else's wish). */
   onOpen?: (wish: Wish) => void
+  /** Extra controls at the bottom of the card (e.g. «Я дарую»). */
+  footer?: ReactNode
 }
 
-export default function WishCard({ wish, onOpen }: Props) {
+export default function WishCard({ wish, onOpen, footer }: Props) {
   const [expanded, setExpanded] = useState(false)
   const priority = PRIORITIES.find((p) => p.value === wish.priority)
 
@@ -107,6 +109,7 @@ export default function WishCard({ wish, onOpen }: Props) {
             🔗 Відкрити посилання
           </button>
         )}
+        {footer && <div className="above-card-link card-footer">{footer}</div>}
       </div>
     </article>
   )

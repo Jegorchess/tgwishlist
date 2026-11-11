@@ -1,9 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 
-from app.api.wishes import WishOut
+from app.api.reservations import others_wishes_out
+from app.api.schemas import OthersWishOut, PersonOut
 from app.auth.deps import MemberUser
 from app.config import Settings, get_settings
 from app.db import SessionDep
@@ -11,16 +11,6 @@ from app.services.people import get_person, list_people
 from app.services.wishes import list_own_wishes
 
 router = APIRouter(prefix="/api/people", tags=["people"])
-
-
-class PersonOut(BaseModel):
-    """Only what the list needs: no Telegram ID, username or language of other people."""
-
-    id: int
-    first_name: str
-    last_name: str | None
-    photo_url: str | None
-    wish_count: int
 
 
 @router.get("")
@@ -42,12 +32,18 @@ async def people(
 @router.get("/{user_id}/wishes")
 async def person_wishes(
     user_id: int,
-    _: MemberUser,
+    user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
-) -> list[WishOut]:
-    """Read-only list of another person's wishes, sorted like "my wishes"."""
+) -> list[OthersWishOut]:
+    """Read-only list of another person's wishes, sorted like "my wishes".
+
+    Includes reservations, except when I'm looking at my own list (surprise!).
+    """
     person = await get_person(session, settings, user_id)
     if person is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Person not found")
-    return [WishOut.model_validate(w) for w in await list_own_wishes(session, person)]
+    wishes = await list_own_wishes(session, person)
+    if person.id == user.id:  # my own list via /people: never reveal reservations
+        return [OthersWishOut.model_validate(w, from_attributes=True) for w in wishes]
+    return await others_wishes_out(session, wishes, user)
