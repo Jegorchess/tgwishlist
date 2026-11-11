@@ -4,6 +4,9 @@ from fastapi import Depends, Header, HTTPException, status
 
 from app.auth.telegram import InitData, InitDataError, TelegramUser, validate_init_data
 from app.config import Settings, get_settings
+from app.db import SessionDep
+from app.models import User
+from app.services.users import get_or_create_user
 
 DEV_USER = TelegramUser(id=1, first_name="Dev", username="dev")
 
@@ -27,3 +30,11 @@ def current_init_data(
 
 
 CurrentInitData = Annotated[InitData, Depends(current_init_data)]
+
+
+async def current_user(init_data: CurrentInitData, session: SessionDep) -> User:
+    """The authenticated user's profile; created automatically on first login."""
+    return await get_or_create_user(session, init_data.user)
+
+
+CurrentUser = Annotated[User, Depends(current_user)]

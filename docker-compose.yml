@@ -7,6 +7,9 @@ services:
       POSTGRES_DB: wishlist
     volumes:
       - db-data:/var/lib/postgresql/data
+    ports:
+      # Reachable only from this machine: local dev (uvicorn, alembic) connects here.
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wishlist"]
       interval: 5s
