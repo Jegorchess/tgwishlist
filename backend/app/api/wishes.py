@@ -198,11 +198,11 @@ async def remove_wish(
 @router.get("/{wish_id}/photo", response_class=FileResponse)
 async def wish_photo(
     wish_id: int,
-    user: MemberUser,
+    _: MemberUser,  # any user with access may see any photo
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> FileResponse:
-    wish = await get_wish_for_reader(session, wish_id, user)
+    wish = await get_wish_for_reader(session, settings, wish_id)
     path = Path(settings.media_dir) / wish.photo_name if wish and wish.photo_name else None
     if path is None or not path.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found")

@@ -54,8 +54,8 @@ function WishPhoto({ wish }: { wish: Wish }) {
 
 interface Props {
   wish: Wish
-  /** Tap on the card opens editing. */
-  onOpen: (wish: Wish) => void
+  /** Tap on the card opens editing; omit for read-only cards (someone else's wish). */
+  onOpen?: (wish: Wish) => void
 }
 
 export default function WishCard({ wish, onOpen }: Props) {
@@ -69,14 +69,18 @@ export default function WishCard({ wish, onOpen }: Props) {
       <WishPhoto wish={wish} />
       <div className="wish-body">
         <h3 className="wish-title">
-          <button
-            type="button"
-            className="wish-open"
-            aria-label={`Редагувати «${wish.title}»`}
-            onClick={() => onOpen(wish)}
-          >
-            {wish.title}
-          </button>
+          {onOpen ? (
+            <button
+              type="button"
+              className="wish-open"
+              aria-label={`Редагувати «${wish.title}»`}
+              onClick={() => onOpen(wish)}
+            >
+              {wish.title}
+            </button>
+          ) : (
+            wish.title
+          )}
         </h3>
         <div className="wish-meta">
           {priority && (

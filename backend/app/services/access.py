@@ -2,18 +2,24 @@
 
 import secrets
 
-from sqlalchemy import select, update
+from sqlalchemy import ColumnElement, exists, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
-from app.models import AccessGrant, Invite
+from app.models import AccessGrant, Invite, User
 
 CODE_BYTES = 12  # -> 16 URL-safe characters
 
 
 def is_admin(settings: Settings, telegram_id: int) -> bool:
     return telegram_id in settings.admin_ids
+
+
+def has_access_condition(settings: Settings) -> ColumnElement[bool]:
+    """SQL condition on ``User``: joined via an invite or is an admin."""
+    granted = exists().where(AccessGrant.telegram_id == User.telegram_id)
+    return or_(granted, User.telegram_id.in_(settings.admin_ids))
 
 
 async def has_access(session: AsyncSession, settings: Settings, telegram_id: int) -> bool:

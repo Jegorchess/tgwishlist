@@ -3,7 +3,9 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import Settings
 from app.models import Priority, User, WishItem
+from app.services.access import has_access_condition
 
 
 async def create_wish(
@@ -32,7 +34,10 @@ async def create_wish(
 
 
 async def list_own_wishes(session: AsyncSession, owner: User) -> list[WishItem]:
-    """Owner's wishes: most wanted first, newest first within the same priority."""
+    """Owner's wishes: most wanted first, newest first within the same priority.
+
+    Used both for "my wishes" and for browsing another person's list.
+    """
     result = await session.scalars(
         select(WishItem)
         .where(WishItem.owner_id == owner.id)
@@ -41,13 +46,17 @@ async def list_own_wishes(session: AsyncSession, owner: User) -> list[WishItem]:
     return list(result)
 
 
-async def get_wish_for_reader(session: AsyncSession, wish_id: int, reader: User) -> WishItem | None:
-    """Return the wish if ``reader`` may see it.
+async def get_wish_for_reader(
+    session: AsyncSession, settings: Settings, wish_id: int
+) -> WishItem | None:
+    """A wish visible to members: its owner must still have access (same rule as «Люди»).
 
-    Families come in iteration 2; until then only the owner can see their wishes.
+    The reader's own access is checked by the caller (MemberUser).
     """
     return await session.scalar(
-        select(WishItem).where(WishItem.id == wish_id, WishItem.owner_id == reader.id)
+        select(WishItem)
+        .join(User, User.id == WishItem.owner_id)
+        .where(WishItem.id == wish_id, has_access_condition(settings))
     )
 
 

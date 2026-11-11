@@ -1,5 +1,7 @@
 """A-1: invite-only access (issue #10)."""
 
+import re
+
 import pytest
 from sqlalchemy import func, select
 
@@ -22,6 +24,8 @@ PROTECTED = [
     ("GET", "/api/wishes/{wish_id}/photo"),
     ("GET", "/api/invite"),
     ("POST", "/api/invite/regenerate"),
+    ("GET", "/api/people"),
+    ("GET", "/api/people/{user_id}/wishes"),
 ]
 
 
@@ -60,7 +64,7 @@ async def test_admin_always_has_access(client):
 @pytest.mark.parametrize(("method", "path"), PROTECTED)
 async def test_stranger_gets_403(client, method, path):
     data = {"title": "x"} if method in ("POST", "PATCH") else None
-    url = path.replace("{wish_id}", "1")
+    url = re.sub(r"\{\w+\}", "1", path)
 
     resp = await client.request(method, url, data=data, headers=as_user(STRANGER))
 
