@@ -1,6 +1,6 @@
-# 🎁 Сімейний вішліст
+# 🎁 Вішліст для рідних і друзів
 
-Telegram Mini App, де кожен член сім'ї веде свій список бажань, а рідні бачать списки одне одного.
+Telegram Mini App, де рідні й друзі ведуть свої списки бажань і бачать списки одне одного. Вхід — лише за посиланням-запрошенням.
 
 **Стек:** React + Vite + TypeScript · Python FastAPI + aiogram · PostgreSQL
 
@@ -12,7 +12,8 @@ Telegram Mini App, де кожен член сім'ї веде свій спис
 ## Запуск локально
 Потрібно: Git, Node.js 22, [uv](https://docs.astral.sh/uv/) (сам поставить Python 3.12), Docker Desktop.
 
-1. Скопіюй `.env.example` у `backend/.env`, впиши `BOT_TOKEN` і `DEV_AUTH=true`.
+1. Скопіюй `.env.example` у `backend/.env`, впиши `BOT_TOKEN`, `DEV_AUTH=true` і `ADMIN_TELEGRAM_IDS=<твій id>,1`
+   (`1` — це dev-користувач браузерного режиму; на сервері його не додавай).
 2. База даних (PostgreSQL у Docker, доступна лише з цього комп'ютера):
    ```bash
    docker compose up -d db   # порт 5433 на localhost
@@ -31,6 +32,10 @@ Telegram Mini App, де кожен член сім'ї веде свій спис
    npm run dev
    ```
 5. Відкрий http://localhost:5173
+
+## Доступ
+Адміністратор (`ADMIN_TELEGRAM_IDS`) має доступ завжди і бачить у застосунку розділ «Запросити» з посиланням `t.me/<бот>?start=<код>`.
+Хто відкрив посилання — отримує доступ назавжди. Посилання можна перегенерувати: старе перестане працювати.
 
 ## Міграції
 Після зміни моделей у `backend/app/models.py`:

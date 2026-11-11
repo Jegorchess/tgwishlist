@@ -9,6 +9,9 @@ export interface Me {
   language_code: string | null
   photo_url: string | null
   start_param: string | null
+  /** Joined via the invite link (or is an admin). Without it every other call returns 403. */
+  has_access: boolean
+  is_admin: boolean
 }
 
 /** 1 = «Дуже хочу», 2 = «Хочу», 3 = «Було б непогано». */
@@ -64,6 +67,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   me: () => request<Me>('/api/me'),
+  /** Admin only. */
+  invite: () => request<{ link: string }>('/api/invite'),
+  regenerateInvite: () => request<{ link: string }>('/api/invite/regenerate', { method: 'POST' }),
   /** Fields: title, price, priority, url, description, photo (optional file). */
   createWish: (form: FormData) => request<Wish>('/api/wishes', { method: 'POST', body: form }),
   /** Replaces all fields; send remove_photo=true to drop the photo. */

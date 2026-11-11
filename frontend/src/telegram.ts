@@ -22,6 +22,7 @@ interface WebApp {
   expand(): void
   BackButton: BackButton
   openLink(url: string): void
+  openTelegramLink(url: string): void
   showPopup(
     params: {
       message: string
@@ -97,4 +98,10 @@ export function confirmDialog(message: string, confirmText: string): Promise<boo
     )
   }
   return Promise.resolve(window.confirm(message))
+}
+
+/** Open a t.me link inside Telegram (e.g. the "share to chat" picker). */
+export function openTelegramLink(url: string): void {
+  if (insideTelegram && webApp) webApp.openTelegramLink(url)
+  else window.open(url, '_blank', 'noopener,noreferrer')
 }

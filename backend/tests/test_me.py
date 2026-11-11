@@ -52,6 +52,8 @@ async def test_me_returns_profile_from_db(client, session_factory):
         "language_code": "uk",
         "photo_url": TG_USER["photo_url"],
         "start_param": "join_abc",
+        "has_access": True,
+        "is_admin": False,
     }
 
 
