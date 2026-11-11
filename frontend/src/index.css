@@ -562,3 +562,125 @@ label.link {
 .my-reservations .section-title {
   margin-top: 16px;
 }
+
+/* --- UI-1 polish ------------------------------------------------------------ */
+
+/* Dark fallbacks for a plain browser; inside Telegram its theme variables win. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tg]) {
+    color-scheme: dark;
+    --bg: var(--tg-theme-bg-color, #17212b);
+    --text: var(--tg-theme-text-color, #f5f5f5);
+    --hint: var(--tg-theme-hint-color, #8b9aa7);
+    --accent: var(--tg-theme-button-color, #5288c1);
+    --danger: var(--tg-theme-destructive-text-color, #ec5b5b);
+    --field-bg: var(--tg-theme-secondary-bg-color, #232e3c);
+  }
+}
+
+/* Cards: bigger photo, clearer price and priority, a little press feedback. */
+.wish-card {
+  align-items: flex-start;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.wish-card.clickable:active {
+  transform: scale(0.98);
+}
+
+.wish-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+}
+
+.wish-title {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.wish-meta {
+  gap: 10px;
+}
+
+.wish-price {
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.priority-badge {
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.priority-1::before {
+  content: '🔥 ';
+  content: '🔥 ' / '';
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wish-card {
+    transition: none;
+  }
+
+  .wish-card.clickable:active {
+    transform: none;
+  }
+}
+
+/* Someone else's list: a header with a big avatar. */
+.person-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 16px;
+  text-align: center;
+}
+
+.person-header .person-title {
+  font-size: 1.35rem;
+}
+
+.person-header .hint {
+  margin: 0;
+}
+
+/* Search */
+.search-box {
+  margin: 0 0 12px;
+}
+
+.search-box input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--field-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* People rows and tabs react to taps too. */
+.person-row,
+.tabs button,
+.primary,
+.secondary {
+  transition: transform 0.12s ease;
+}
+
+.person-row:active,
+.primary:active:not(:disabled),
+.secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}

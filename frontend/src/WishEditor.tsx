@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { api, ApiError, type Wish } from './api'
-import { confirmDialog, haptic, useBackButton } from './telegram'
+import { confirmDialog, hasMainButton, haptic, useBackButton, useMainButton } from './telegram'
 import { useLinkAutofill } from './useLinkAutofill'
 import { useWishPhoto } from './WishCard'
 import {
@@ -31,9 +31,26 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
   const autofill = useLinkAutofill(values.url, !editing, setValues)
   const [errors, setErrors] = useState<WishFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+  // What is in progress: drives the disabled state and the MainButton spinner.
+  const [busy, setBusy] = useState<'save' | 'delete' | null>(null)
+  const saving = busy !== null
+  // Synchronous guard: two quick taps on the native button arrive before React re-renders.
+  const busyRef = useRef(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [previewFailed, setPreviewFailed] = useState(false)
+
+  const formRef = useRef<HTMLFormElement>(null)
+  const submitForm = useCallback(() => {
+    const form = formRef.current
+    if (!form) return
+    // requestSubmit needs iOS 16+; older Telegram webviews get a plain submit event.
+    if (typeof form.requestSubmit === 'function') form.requestSubmit()
+    else form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  }, [])
+  useMainButton(editing ? 'Зберегти зміни' : 'Зберегти', submitForm, {
+    progress: busy === 'save',
+    disabled: saving,
+  })
 
   const noop = useCallback(() => {}, [])
   useBackButton(saving ? noop : onCancel)
@@ -57,6 +74,7 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (busyRef.current) return
     const found = validateWish(values)
     setErrors(found)
     setSubmitError(null)
@@ -64,7 +82,8 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
       haptic('error')
       return
     }
-    setSaving(true)
+    busyRef.current = true
+    setBusy('save')
     try {
       const form = toFormData(values, editing)
       const saved = wish ? await api.updateWish(wish.id, form) : await api.createWish(form)
@@ -83,16 +102,19 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
         setSubmitError('Сервер не прийняв дані. Перевір поля і спробуй ще раз.')
       else setSubmitError('Не вдалося зберегти. Перевір з’єднання і спробуй ще раз.')
     } finally {
-      setSaving(false)
+      busyRef.current = false
+      setBusy(null)
     }
   }
 
   async function remove() {
-    if (!wish) return
-    setSaving(true) // also blocks a second tap while the dialog is open
+    if (!wish || busyRef.current) return
+    busyRef.current = true // also blocks a second tap while the dialog is open
+    setBusy('delete')
     setSubmitError(null)
     if (!(await confirmDialog(`Видалити бажання «${wish.title}»?`, 'Видалити'))) {
-      setSaving(false)
+      busyRef.current = false
+      setBusy(null)
       return
     }
     try {
@@ -105,7 +127,8 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
       if (err instanceof ApiError && err.status === 404) onDeleted()
       else setSubmitError('Не вдалося видалити. Перевір з’єднання і спробуй ще раз.')
     } finally {
-      setSaving(false)
+      busyRef.current = false
+      setBusy(null)
     }
   }
 
@@ -122,7 +145,7 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
   )
 
   return (
-    <form className="wish-form" onSubmit={submit} noValidate>
+    <form ref={formRef} className="wish-form" onSubmit={submit} noValidate>
       <h2>{editing ? 'Редагування' : 'Нове бажання'}</h2>
 
       <label className="field">
@@ -254,9 +277,12 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
       {submitError && <p className="error">{submitError}</p>}
 
       <div className="actions">
-        <button type="submit" className="primary" disabled={saving}>
-          {saving ? 'Зберігаю…' : 'Зберегти'}
-        </button>
+        {/* Inside Telegram the native bottom button submits the form instead. */}
+        {!hasMainButton && (
+          <button type="submit" className="primary" disabled={saving}>
+            {saving ? 'Зберігаю…' : 'Зберегти'}
+          </button>
+        )}
         <button type="button" className="secondary" onClick={onCancel} disabled={saving}>
           Скасувати
         </button>
