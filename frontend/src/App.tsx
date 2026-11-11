@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type Me, type Wish } from './api'
+import { api, type Me, type Person, type Wish } from './api'
+import Avatar from './Avatar'
 import { insideTelegram } from './telegram'
 import InviteCard from './InviteCard'
+import PeopleList from './PeopleList'
+import PersonWishes from './PersonWishes'
 import WishEditor from './WishEditor'
 import WishList from './WishList'
 
-type View = { name: 'home' } | { name: 'wish-form'; wish?: Wish }
+type View =
+  | { name: 'home' }
+  | { name: 'wish-form'; wish?: Wish }
+  | { name: 'person'; person: Person }
+type Tab = 'mine' | 'people'
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [avatarFailed, setAvatarFailed] = useState(false)
   const [view, setView] = useState<View>({ name: 'home' })
+  const [tab, setTab] = useState<Tab>('mine')
   const [notice, setNotice] = useState<string | null>(null)
   const [wishes, setWishes] = useState<Wish[] | null>(null)
   const [wishesError, setWishesError] = useState(false)
@@ -57,6 +64,7 @@ export default function App() {
   const goHome = useCallback(() => setView({ name: 'home' }), [])
   const openAddWish = useCallback(() => setView({ name: 'wish-form' }), [])
   const openEditWish = useCallback((wish: Wish) => setView({ name: 'wish-form', wish }), [])
+  const openPerson = useCallback((person: Person) => setView({ name: 'person', person }), [])
   const editing = view.name === 'wish-form' && view.wish !== undefined
 
   const backToList = useCallback(
@@ -72,6 +80,14 @@ export default function App() {
     [backToList, editing],
   )
   const onWishDeleted = useCallback(() => backToList('🗑 Бажання видалено'), [backToList])
+
+  if (view.name === 'person') {
+    return (
+      <main className="app">
+        <PersonWishes key={view.person.id} person={view.person} onBack={goHome} />
+      </main>
+    )
+  }
 
   if (view.name === 'wish-form') {
     return (
@@ -112,26 +128,39 @@ export default function App() {
       {me && me.has_access && (
         <>
           <div className="profile">
-            {me.photo_url && !avatarFailed ? (
-              <img
-                className="avatar"
-                src={me.photo_url}
-                alt=""
-                onError={() => setAvatarFailed(true)}
-              />
-            ) : (
-              <div className="avatar avatar-fallback">{me.first_name.charAt(0) || '?'}</div>
-            )}
+            <Avatar name={me.first_name} photoUrl={me.photo_url} />
             <p>Привіт, {me.first_name}!</p>
           </div>
           {me.is_admin && <InviteCard />}
-          <WishList
-            wishes={wishes}
-            error={wishesError}
-            onRetry={loadWishes}
-            onAdd={openAddWish}
-            onOpen={openEditWish}
-          />
+          <div className="tabs">
+            <button
+              type="button"
+              aria-pressed={tab === 'mine'}
+              className={tab === 'mine' ? 'active' : ''}
+              onClick={() => setTab('mine')}
+            >
+              Мої бажання
+            </button>
+            <button
+              type="button"
+              aria-pressed={tab === 'people'}
+              className={tab === 'people' ? 'active' : ''}
+              onClick={() => setTab('people')}
+            >
+              Люди
+            </button>
+          </div>
+          {tab === 'mine' ? (
+            <WishList
+              wishes={wishes}
+              error={wishesError}
+              onRetry={loadWishes}
+              onAdd={openAddWish}
+              onOpen={openEditWish}
+            />
+          ) : (
+            <PeopleList onOpen={openPerson} />
+          )}
         </>
       )}
       {!insideTelegram && <p className="hint">Режим розробки: відкрито поза Telegram.</p>}

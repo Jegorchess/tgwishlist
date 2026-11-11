@@ -261,14 +261,15 @@ async def test_photo_requires_auth(client):
     assert (await client.get(f"/api/wishes/{wish['id']}/photo")).status_code == 401
 
 
-async def test_other_user_cannot_get_photo(client):
+async def test_other_member_can_get_photo(client):
+    """P-1: everyone with access browses other people's lists, photos included."""
     wish = (await add(client, photo=("p.png", image_bytes("PNG"), "image/png"))).json()
 
     resp = await client.get(
         f"/api/wishes/{wish['id']}/photo", headers=auth(make_init_data(user=OTHER_USER))
     )
 
-    assert resp.status_code == 404
+    assert resp.status_code == 200
 
 
 async def test_wish_without_photo_has_no_photo(client):

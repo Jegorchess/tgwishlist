@@ -14,6 +14,15 @@ export interface Me {
   is_admin: boolean
 }
 
+/** Someone who has wishes and can be browsed in «Люди». */
+export interface Person {
+  id: number
+  first_name: string
+  last_name: string | null
+  photo_url: string | null
+  wish_count: number
+}
+
 /** 1 = «Дуже хочу», 2 = «Хочу», 3 = «Було б непогано». */
 export type Priority = 1 | 2 | 3
 
@@ -78,6 +87,10 @@ export const api = {
   deleteWish: async (id: number) => {
     await send(`/api/wishes/${id}`, { method: 'DELETE' })
   },
+  /** Everyone with wishes except me, sorted by name. */
+  people: () => request<Person[]>('/api/people'),
+  /** Someone else's wishes (read-only), sorted like my own. */
+  personWishes: (userId: number) => request<Wish[]>(`/api/people/${userId}/wishes`),
   /** Own wishes, already sorted: priority first, newest first. */
   myWishes: () => request<Wish[]>('/api/wishes'),
   /** Photos need the auth header, so they are fetched as a Blob rather than via <img src>. */

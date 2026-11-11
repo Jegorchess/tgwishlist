@@ -442,3 +442,75 @@ label.link {
 .invite-actions .secondary {
   margin-top: 0;
 }
+
+/* --- people -------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--field-bg);
+}
+
+.tabs button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--hint);
+  font-weight: 600;
+}
+
+.tabs button.active {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.people-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.person-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--field-bg);
+  color: var(--text);
+  text-align: left;
+}
+
+.person-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.person-count {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.person-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.person-wishes {
+  margin-top: 16px;
+}
+
+.back-button {
+  margin-top: 24px;
+}
