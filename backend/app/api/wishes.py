@@ -9,7 +9,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.auth.deps import CurrentUser
+from app.auth.deps import MemberUser
 from app.config import Settings, get_settings
 from app.db import SessionDep
 from app.models import Priority, WishItem
@@ -111,13 +111,13 @@ class WishOut(BaseModel):
 
 
 @router.get("")
-async def my_wishes(user: CurrentUser, session: SessionDep) -> list[WishOut]:
+async def my_wishes(user: MemberUser, session: SessionDep) -> list[WishOut]:
     return [WishOut.model_validate(w) for w in await list_own_wishes(session, user)]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def add_wish(
-    user: CurrentUser,
+    user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
     form: Annotated[WishCreate, Form()],
@@ -144,7 +144,7 @@ async def add_wish(
     return WishOut.model_validate(wish)
 
 
-async def _own_wish_or_404(session: SessionDep, wish_id: int, user: CurrentUser) -> WishItem:
+async def _own_wish_or_404(session: SessionDep, wish_id: int, user: MemberUser) -> WishItem:
     wish = await get_own_wish(session, wish_id, user)
     if wish is None:
         # Same answer for "someone else's" and "does not exist": don't reveal other wishes.
@@ -155,7 +155,7 @@ async def _own_wish_or_404(session: SessionDep, wish_id: int, user: CurrentUser)
 @router.patch("/{wish_id}")
 async def edit_wish(
     wish_id: int,
-    user: CurrentUser,
+    user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
     form: Annotated[WishUpdate, Form()],
@@ -187,7 +187,7 @@ async def edit_wish(
 @router.delete("/{wish_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_wish(
     wish_id: int,
-    user: CurrentUser,
+    user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
@@ -198,7 +198,7 @@ async def remove_wish(
 @router.get("/{wish_id}/photo", response_class=FileResponse)
 async def wish_photo(
     wish_id: int,
-    user: CurrentUser,
+    user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> FileResponse:

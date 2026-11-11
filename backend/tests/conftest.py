@@ -11,6 +11,7 @@ from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import Settings, get_settings
 from app.db import Base, get_session
 from app.main import app
+from app.models import AccessGrant
 from tests.helpers import MAX_AGE, TOKEN
 
 # In-memory SQLite by default; CI also runs the suite against PostgreSQL.
@@ -41,15 +42,33 @@ def media_dir(tmp_path):
     return tmp_path / "media"
 
 
+ADMIN_ID = 1000
+MEMBER_IDS = (42, 43)  # users of the existing tests have joined via the invite link
+
+
 @pytest.fixture
-async def client(session_factory, media_dir) -> AsyncIterator[AsyncClient]:
+def settings(media_dir) -> Settings:
+    return Settings(
+        bot_token=TOKEN,
+        init_data_max_age=MAX_AGE,
+        dev_auth=False,
+        media_dir=str(media_dir),
+        admin_telegram_ids=str(ADMIN_ID),
+        bot_username="test_bot",
+    )
+
+
+@pytest.fixture
+async def client(session_factory, settings) -> AsyncIterator[AsyncClient]:
+    async with session_factory() as session:
+        session.add_all(AccessGrant(telegram_id=tid) for tid in MEMBER_IDS)
+        await session.commit()
+
     async def override_session() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
             yield session
 
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        bot_token=TOKEN, init_data_max_age=MAX_AGE, dev_auth=False, media_dir=str(media_dir)
-    )
+    app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_session] = override_session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Me, type Wish } from './api'
 import { insideTelegram } from './telegram'
+import InviteCard from './InviteCard'
 import WishEditor from './WishEditor'
 import WishList from './WishList'
 
@@ -37,8 +38,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    api.me().then(setMe).catch((e: Error) => setError(e.message))
-    loadWishes()
+    api
+      .me()
+      .then((profile) => {
+        setMe(profile)
+        // Everything else is closed without access (403), so don't even ask.
+        if (profile.has_access) loadWishes()
+      })
+      .catch((e: Error) => setError(e.message))
   }, [loadWishes])
 
   useEffect(() => {
@@ -82,7 +89,7 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>🎁 Сімейний вішліст</h1>
+      <h1>🎁 Вішліст</h1>
       {notice && (
         <p className="notice" role="status">
           {notice}
@@ -90,7 +97,19 @@ export default function App() {
       )}
       {error && <p className="error">Не вдалося завантажити профіль: {error}</p>}
       {!error && !me && <p className="hint">Завантаження…</p>}
-      {me && (
+      {me && !me.has_access && (
+        <section className="no-access">
+          <p className="no-access-icon" aria-hidden>
+            🔒
+          </p>
+          <h2>Доступ лише за запрошенням</h2>
+          <p className="hint">
+            Це приватний вішліст для рідних і друзів. Попроси посилання-запрошення в того, хто тебе
+            сюди покликав, і відкрий його в Telegram.
+          </p>
+        </section>
+      )}
+      {me && me.has_access && (
         <>
           <div className="profile">
             {me.photo_url && !avatarFailed ? (
@@ -105,6 +124,7 @@ export default function App() {
             )}
             <p>Привіт, {me.first_name}!</p>
           </div>
+          {me.is_admin && <InviteCard />}
           <WishList
             wishes={wishes}
             error={wishesError}

@@ -1,6 +1,6 @@
 """Run the bot in long-polling mode for local development.
 
-Usage: ``uv run python -m app.bot.polling``. In production the bot will run via webhook.
+Usage: ``uv run python -m app.bot.polling``. Docker Compose runs it as the ``bot`` service.
 """
 
 import asyncio

@@ -393,3 +393,52 @@ button.wish-description {
 label.link {
   cursor: pointer;
 }
+
+/* --- access & invite ----------------------------------------------------- */
+.no-access {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.no-access-icon {
+  margin: 0;
+  font-size: 3rem;
+}
+
+.invite-card {
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--field-bg);
+}
+
+.invite-card summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.small-text {
+  font-size: 0.85rem;
+}
+
+.invite-link {
+  display: block;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.8rem;
+  word-break: break-all;
+  user-select: all;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.invite-actions .primary,
+.invite-actions .secondary {
+  margin-top: 0;
+}

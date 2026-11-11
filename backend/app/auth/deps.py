@@ -6,6 +6,7 @@ from app.auth.telegram import InitData, InitDataError, TelegramUser, validate_in
 from app.config import Settings, get_settings
 from app.db import SessionDep
 from app.models import User
+from app.services.access import has_access, is_admin
 from app.services.users import get_or_create_user
 
 DEV_USER = TelegramUser(id=1, first_name="Dev", username="dev")
@@ -38,3 +39,26 @@ async def current_user(init_data: CurrentInitData, session: SessionDep) -> User:
 
 
 CurrentUser = Annotated[User, Depends(current_user)]
+
+
+async def member_user(
+    user: CurrentUser,
+    session: SessionDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> User:
+    """A user who joined via the invite link (or an admin). Everyone else gets 403."""
+    if not await has_access(session, settings, user.telegram_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Access is by invitation only")
+    return user
+
+
+MemberUser = Annotated[User, Depends(member_user)]
+
+
+def admin_user(user: CurrentUser, settings: Annotated[Settings, Depends(get_settings)]) -> User:
+    if not is_admin(settings, user.telegram_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admins only")
+    return user
+
+
+AdminUser = Annotated[User, Depends(admin_user)]

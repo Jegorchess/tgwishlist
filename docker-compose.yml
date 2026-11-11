@@ -29,6 +29,18 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
 
+  # Telegram bot (long polling): answers /start and redeems invite links.
+  bot:
+    build: ./backend
+    command: ["uv", "run", "--no-dev", "python", "-m", "app.bot.polling"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://wishlist:${POSTGRES_PASSWORD:-wishlist}@db:5432/wishlist
+    depends_on:
+      backend:  # the backend container applies migrations on start
+        condition: service_started
+    restart: unless-stopped
+
   web:
     build: ./frontend
     environment:

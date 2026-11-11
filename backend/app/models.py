@@ -65,3 +65,23 @@ class WishItem(Base):
     def photo_version(self) -> str | None:
         """Changes whenever the photo is replaced, so clients know to refetch it."""
         return self.photo_name[:12] if self.photo_name else None
+
+
+class AccessGrant(Base):
+    """A Telegram account that joined via an invite link and may use the app."""
+
+    __tablename__ = "access_grants"
+
+    telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Invite(Base):
+    """Invite codes; only the newest active one works."""
+
+    __tablename__ = "invites"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
