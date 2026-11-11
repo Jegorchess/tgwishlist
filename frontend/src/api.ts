@@ -14,6 +14,22 @@ export interface Me {
   is_admin: boolean
 }
 
+/** Visible only to people other than the wish's owner. */
+export interface Reservation {
+  mine: boolean
+  by_name: string
+}
+
+/** A wish in someone else's list (with its reservation, if any). */
+export interface OthersWish extends Wish {
+  reservation: Reservation | null
+}
+
+export interface MyReservation {
+  wish: OthersWish
+  owner: Person
+}
+
 /** Someone who has wishes and can be browsed in «Люди». */
 export interface Person {
   id: number
@@ -90,7 +106,14 @@ export const api = {
   /** Everyone with wishes except me, sorted by name. */
   people: () => request<Person[]>('/api/people'),
   /** Someone else's wishes (read-only), sorted like my own. */
-  personWishes: (userId: number) => request<Wish[]>(`/api/people/${userId}/wishes`),
+  personWishes: (userId: number) => request<OthersWish[]>(`/api/people/${userId}/wishes`),
+  /** «Я дарую». 409 if someone else was faster. */
+  reserve: (wishId: number) =>
+    request<OthersWish>(`/api/wishes/${wishId}/reservation`, { method: 'POST' }),
+  cancelReservation: async (wishId: number) => {
+    await send(`/api/wishes/${wishId}/reservation`, { method: 'DELETE' })
+  },
+  myReservations: () => request<MyReservation[]>('/api/reservations'),
   /** Own wishes, already sorted: priority first, newest first. */
   myWishes: () => request<Wish[]>('/api/wishes'),
   /** Photos need the auth header, so they are fetched as a Blob rather than via <img src>. */

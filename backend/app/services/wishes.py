@@ -1,10 +1,10 @@
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
-from app.models import Priority, User, WishItem
+from app.models import Priority, Reservation, User, WishItem
 from app.services.access import has_access_condition
 
 
@@ -107,6 +107,8 @@ async def update_wish(
 async def delete_wish(session: AsyncSession, wish: WishItem) -> str | None:
     """Delete the wish. Returns its photo file name so the caller can remove the file."""
     photo = wish.photo_name
+    # Explicit (not only ON DELETE CASCADE): SQLite doesn't enforce foreign keys by default.
+    await session.execute(delete(Reservation).where(Reservation.wish_id == wish.id))
     await session.delete(wish)
     await session.commit()
     return photo

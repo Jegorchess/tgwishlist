@@ -4,7 +4,16 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -13,7 +22,10 @@ from app.auth.deps import MemberUser
 from app.config import Settings, get_settings
 from app.db import SessionDep
 from app.models import Priority, WishItem
+from app.services.access import has_access
+from app.services.notify import Notifier, get_notifier
 from app.services.photos import InvalidPhoto, PhotoTooLarge, read_limited, save_photo
+from app.services.reservations import reserver_of
 from app.services.wishes import (
     create_wish,
     delete_wish,
@@ -190,9 +202,17 @@ async def remove_wish(
     user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
+    background: BackgroundTasks,
+    notifier: Annotated[Notifier, Depends(get_notifier)],
 ) -> None:
     wish = await _own_wish_or_404(session, wish_id, user)
+    gifter = await reserver_of(session, wish.id)
+    title = wish.title
     _remove_file(Path(settings.media_dir), await delete_wish(session, wish))
+    if gifter is not None and await has_access(session, settings, gifter.telegram_id):
+        # The owner never learns about the reservation; only the gifter is told.
+        text = f"{user.first_name} видалив(ла) бажання «{title}», яке ти бронював(ла)."
+        background.add_task(notifier.send, gifter.telegram_id, text)
 
 
 @router.get("/{wish_id}/photo", response_class=FileResponse)

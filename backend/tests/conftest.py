@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import make_url
+from sqlalchemy import event, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -12,6 +12,7 @@ from app.config import Settings, get_settings
 from app.db import Base, get_session
 from app.main import app
 from app.models import AccessGrant
+from app.services.notify import get_notifier
 from tests.helpers import MAX_AGE, TOKEN
 
 # In-memory SQLite by default; CI also runs the suite against PostgreSQL.
@@ -28,6 +29,13 @@ if not TEST_DATABASE_URL.startswith("sqlite"):
 async def session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     kwargs = {"poolclass": StaticPool} if TEST_DATABASE_URL.startswith("sqlite") else {}
     engine = create_async_engine(TEST_DATABASE_URL, **kwargs)
+    if TEST_DATABASE_URL.startswith("sqlite"):
+        # Enforce foreign keys like PostgreSQL does.
+        event.listen(
+            engine.sync_engine,
+            "connect",
+            lambda conn, _: conn.execute("PRAGMA foreign_keys=ON"),
+        )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -58,8 +66,23 @@ def settings(media_dir) -> Settings:
     )
 
 
+class FakeNotifier:
+    """Collects bot messages instead of sending them to Telegram."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[int, str]] = []
+
+    async def send(self, telegram_id: int, text: str) -> None:
+        self.sent.append((telegram_id, text))
+
+
 @pytest.fixture
-async def client(session_factory, settings) -> AsyncIterator[AsyncClient]:
+def notifier() -> FakeNotifier:
+    return FakeNotifier()
+
+
+@pytest.fixture
+async def client(session_factory, settings, notifier) -> AsyncIterator[AsyncClient]:
     async with session_factory() as session:
         session.add_all(AccessGrant(telegram_id=tid) for tid in MEMBER_IDS)
         await session.commit()
@@ -69,6 +92,7 @@ async def client(session_factory, settings) -> AsyncIterator[AsyncClient]:
             yield session
 
     app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_notifier] = lambda: notifier
     app.dependency_overrides[get_session] = override_session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type Person, type Wish } from './api'
+import { api, type OthersWish, type Person, type Reservation } from './api'
 import Avatar from './Avatar'
 import { fullName } from './PeopleList'
 import { insideTelegram, useBackButton } from './telegram'
+import ReservationControl from './ReservationControl'
 import WishCard from './WishCard'
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 
 /** Someone else's wishes: read-only. */
 export default function PersonWishes({ person, onBack }: Props) {
-  const [wishes, setWishes] = useState<Wish[] | null>(null)
+  const [wishes, setWishes] = useState<OthersWish[] | null>(null)
   const [error, setError] = useState(false)
 
   useBackButton(onBack)
@@ -27,6 +28,19 @@ export default function PersonWishes({ person, onBack }: Props) {
       .personWishes(person.id)
       .then((list) => request === latest.current && setWishes(list))
       .catch(() => request === latest.current && setError(true))
+  }, [person.id])
+
+  const setReservation = useCallback((wishId: number, reservation: Reservation | null) => {
+    setWishes((list) => list && list.map((w) => (w.id === wishId ? { ...w, reservation } : w)))
+  }, [])
+
+  // After a conflict, show the real state without the loading spinner.
+  const refresh = useCallback(() => {
+    const request = ++latest.current
+    api
+      .personWishes(person.id)
+      .then((list) => request === latest.current && setWishes(list))
+      .catch(() => {})
   }, [person.id])
 
   useEffect(() => {
@@ -63,7 +77,17 @@ export default function PersonWishes({ person, onBack }: Props) {
       {wishes && wishes.length > 0 && (
         <div className="wish-list person-wishes">
           {wishes.map((w) => (
-            <WishCard key={w.id} wish={w} />
+            <WishCard
+              key={w.id}
+              wish={w}
+              footer={
+                <ReservationControl
+                  wish={w}
+                  onChange={(r) => setReservation(w.id, r)}
+                  onConflict={refresh}
+                />
+              }
+            />
           ))}
         </div>
       )}
