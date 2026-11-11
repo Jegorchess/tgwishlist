@@ -1,0 +1,18 @@
+# SITE_ADDRESS: your domain on the VPS (e.g. wishlist.example.com) -> automatic HTTPS.
+# Defaults to plain HTTP on :80 for local runs.
+{$SITE_ADDRESS::80} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

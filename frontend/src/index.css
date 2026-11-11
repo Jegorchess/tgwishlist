@@ -1,0 +1,32 @@
+/* Telegram injects --tg-theme-* variables; fallbacks are used in a plain browser. */
+:root {
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #1f1f1f);
+  --hint: var(--tg-theme-hint-color, #8a8a8a);
+  --accent: var(--tg-theme-button-color, #2481cc);
+  --danger: var(--tg-theme-destructive-text-color, #d14343);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.hint {
+  color: var(--hint);
+}
+
+.error {
+  color: var(--danger);
+}
