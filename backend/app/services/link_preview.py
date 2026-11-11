@@ -252,7 +252,7 @@ class _MetaParser(HTMLParser):
 
 
 def _products(node: object) -> list[dict]:
-    """All JSON-LD objects of @type Product (including inside @graph / lists)."""
+    """JSON-LD Product / ProductGroup objects (including inside @graph / lists)."""
     found: list[dict] = []
     if isinstance(node, list):
         for item in node:
@@ -260,11 +260,33 @@ def _products(node: object) -> list[dict]:
     elif isinstance(node, dict):
         kind = node.get("@type")
         kinds = kind if isinstance(kind, list) else [kind]
-        if "Product" in kinds:
+        if "Product" in kinds or "ProductGroup" in kinds:
             found.append(node)
         if "@graph" in node:
             found += _products(node["@graph"])
     return found
+
+
+def _as_list(value: object) -> list:
+    return value if isinstance(value, list) else [value]
+
+
+def _offer_price(product: dict) -> Decimal | None:
+    """PLN price from ``offers`` (incl. priceSpecification), or from a ProductGroup's variants."""
+    for offer in _as_list(product.get("offers")):
+        if not isinstance(offer, dict):
+            continue
+        for source in [offer, *_as_list(offer.get("priceSpecification"))]:
+            if isinstance(source, dict) and str(source.get("priceCurrency", "")).upper() == "PLN":
+                price = parse_price(source.get("price") or source.get("lowPrice"))
+                if price is not None:
+                    return price
+    for variant in _as_list(product.get("hasVariant")):
+        if isinstance(variant, dict):
+            price = _offer_price({"offers": variant.get("offers")})
+            if price is not None:
+                return price
+    return None
 
 
 def parse_price(raw: object) -> Decimal | None:
@@ -315,7 +337,9 @@ def parse_preview(html: str, base_url: str) -> Preview:
             products += _products(json.loads(raw))
         except (ValueError, RecursionError):  # broken or absurdly nested JSON
             continue
-    product = products[0] if products else {}
+    # Prefer a product that has offers: pages often list related products first.
+    product = next((p for p in products if p.get("offers") or p.get("hasVariant")), None)
+    product = product or (products[0] if products else {})
 
     title = (
         meta.get("og:title")
@@ -331,12 +355,7 @@ def parse_preview(html: str, base_url: str) -> Preview:
     if amount and currency == "PLN":
         price = parse_price(amount)
     if price is None and product:
-        offers = product.get("offers")
-        for offer in offers if isinstance(offers, list) else [offers]:
-            if isinstance(offer, dict) and str(offer.get("priceCurrency", "")).upper() == "PLN":
-                price = parse_price(offer.get("price") or offer.get("lowPrice"))
-                if price is not None:
-                    break
+        price = _offer_price(product)
     if price is None and meta.get("pricecurrency", "").upper() == "PLN":  # microdata itemprop
         price = parse_price(meta.get("price"))
 

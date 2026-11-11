@@ -399,3 +399,33 @@ async def test_image_proxy_sets_defensive_headers(client, fake_site):
 
     assert resp.headers["content-security-policy"] == "default-src 'none'; sandbox"
     assert resp.headers["x-content-type-options"] == "nosniff"
+
+
+def test_price_from_product_with_offers_not_the_first_product():
+    """Morele-like page: a related-products block comes before the main product."""
+    html = """
+    <script type="application/ld+json">{"@type": "Product", "name": "Related item"}</script>
+    <script type="application/ld+json">{"@type": "Product", "name": "Samsung 990 PRO 1TB",
+      "offers": {"@type": "Offer", "price": 1049, "priceCurrency": "PLN"}}</script>"""
+
+    assert parse_preview(html, "https://shop.example.pl/").price == Decimal("1049.00")
+
+
+def test_price_from_product_group_variant():
+    """Decathlon-like page: price lives in ProductGroup.hasVariant[].offers."""
+    html = """<script type="application/ld+json">{"@graph": [{"@type": "ProductGroup",
+      "name": "Buty NH500", "hasVariant": [{"@type": "Product",
+      "offers": {"@type": "Offer", "price": "399.99", "priceCurrency": "PLN"}}]}]}</script>"""
+
+    preview = parse_preview(html, "https://shop.example.pl/")
+
+    assert preview.title == "Buty NH500"
+    assert preview.price == Decimal("399.99")
+
+
+def test_price_from_price_specification():
+    html = """<script type="application/ld+json">{"@type": "Product", "name": "X",
+      "offers": {"@type": "Offer", "priceSpecification":
+        {"@type": "UnitPriceSpecification", "price": 59.9, "priceCurrency": "PLN"}}}</script>"""
+
+    assert parse_preview(html, "https://shop.example.pl/").price == Decimal("59.90")

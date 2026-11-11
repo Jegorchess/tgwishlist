@@ -180,6 +180,9 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
         />
         {errors.url && <small className="error">{errors.url}</small>}
         {autofill === 'loading' && <small className="hint">Шукаю дані на сторінці…</small>}
+        {autofill === 'no-price' && (
+          <small className="hint">Ціну на сторінці не знайшли — впиши її вручну</small>
+        )}
         {autofill === 'failed' && (
           <small className="hint">
             Не вдалося отримати дані з цієї сторінки — заповни вручну

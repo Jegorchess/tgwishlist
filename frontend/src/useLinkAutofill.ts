@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
 import { isHttpUrl, type WishFormValues } from './wishForm'
 
-export type AutofillStatus = 'idle' | 'loading' | 'failed'
+export type AutofillStatus = 'idle' | 'loading' | 'failed' | 'no-price'
 
 const DEBOUNCE_MS = 700
 
@@ -55,7 +55,8 @@ export function useLinkAutofill(
             prev.price.trim() || found.price === null ? prev.price : found.price.replace('.', ','),
           photo: prev.photo || prev.keepPhoto ? prev.photo : photo,
         }))
-        setStatus(found.title || found.price || photo ? 'idle' : 'failed')
+        if (!found.title && !found.price && !photo) setStatus('failed')
+        else setStatus(found.price ? 'idle' : 'no-price')
       } catch {
         if (!stale()) setStatus('failed')
       }
