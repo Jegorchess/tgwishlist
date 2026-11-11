@@ -4,6 +4,10 @@
 	encode gzip
 
 	handle /api/* {
+		# Reject oversized uploads before they reach the backend (photo limit is 10 MB).
+		request_body {
+			max_size 11MB
+		}
 		reverse_proxy backend:8000
 	}
 	handle /health {

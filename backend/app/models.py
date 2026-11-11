@@ -1,6 +1,18 @@
 from datetime import datetime
+from decimal import Decimal
+from enum import IntEnum
 
-from sqlalchemy import BigInteger, DateTime, String, Text, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    SmallInteger,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -17,3 +29,34 @@ class User(Base):
     language_code: Mapped[str | None] = mapped_column(String(16))
     photo_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Priority(IntEnum):
+    """Lower value = more wanted (used for sorting)."""
+
+    HIGH = 1  # «Дуже хочу»
+    MEDIUM = 2  # «Хочу»
+    LOW = 3  # «Було б непогано»
+
+
+class WishItem(Base):
+    __tablename__ = "wish_items"
+    __table_args__ = (
+        CheckConstraint("priority BETWEEN 1 AND 3", name="ck_wish_items_priority"),
+        CheckConstraint("price IS NULL OR price >= 0", name="ck_wish_items_price"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    priority: Mapped[int] = mapped_column(SmallInteger, default=Priority.MEDIUM)
+    url: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
+    # File name inside settings.media_dir; never exposed directly.
+    photo_name: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def has_photo(self) -> bool:
+        return self.photo_name is not None

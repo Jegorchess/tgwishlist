@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     # Allow the "dev" auth bypass. NEVER enable in production.
     dev_auth: bool = False
     database_url: str = "postgresql+asyncpg://wishlist:wishlist@localhost:5433/wishlist"
+    # Where uploaded wish photos are stored (a Docker volume in production).
+    media_dir: str = "media"
 
 
 @lru_cache

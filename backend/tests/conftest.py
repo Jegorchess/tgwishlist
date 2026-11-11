@@ -37,13 +37,18 @@ async def session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
 
 
 @pytest.fixture
-async def client(session_factory) -> AsyncIterator[AsyncClient]:
+def media_dir(tmp_path):
+    return tmp_path / "media"
+
+
+@pytest.fixture
+async def client(session_factory, media_dir) -> AsyncIterator[AsyncClient]:
     async def override_session() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
             yield session
 
     app.dependency_overrides[get_settings] = lambda: Settings(
-        bot_token=TOKEN, init_data_max_age=MAX_AGE, dev_auth=False
+        bot_token=TOKEN, init_data_max_age=MAX_AGE, dev_auth=False, media_dir=str(media_dir)
     )
     app.dependency_overrides[get_session] = override_session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:

@@ -54,3 +54,151 @@ h1 {
   font-size: 1.3rem;
   font-weight: 600;
 }
+
+/* --- buttons ------------------------------------------------------------- */
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary,
+.secondary {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.primary {
+  margin-top: 16px;
+  background: var(--accent);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.secondary {
+  background: var(--field-bg);
+  color: var(--text);
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tg-theme-link-color, var(--accent));
+}
+
+.notice {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--field-bg);
+}
+
+/* --- add wish form ------------------------------------------------------- */
+:root {
+  --field-bg: var(--tg-theme-secondary-bg-color, #f1f1f4);
+}
+
+.wish-form h2 {
+  margin: 0 0 16px;
+  font-size: 1.2rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: none;
+}
+
+.field > span {
+  color: var(--hint);
+  font-size: 0.9rem;
+}
+
+.field input,
+.field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--field-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field [aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.counter {
+  align-self: flex-end;
+}
+
+.segmented {
+  display: flex;
+  gap: 6px;
+}
+
+.segmented button {
+  flex: 1;
+  padding: 10px 4px;
+  border: none;
+  border-radius: 10px;
+  background: var(--field-bg);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.segmented button.active {
+  background: var(--accent);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.photo-pick {
+  display: block;
+  padding: 14px;
+  border: 1px dashed var(--hint);
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.photo-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.photo-preview img {
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.photo-name {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--field-bg);
+  word-break: break-all;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
