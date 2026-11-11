@@ -30,3 +30,27 @@ h1 {
 .error {
   color: var(--danger);
 }
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  font-size: 1.3rem;
+  font-weight: 600;
+}

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     init_data_max_age: int = 24 * 60 * 60
     # Allow the "dev" auth bypass. NEVER enable in production.
     dev_auth: bool = False
-    database_url: str = "postgresql+asyncpg://wishlist:wishlist@localhost:5432/wishlist"
+    database_url: str = "postgresql+asyncpg://wishlist:wishlist@localhost:5433/wishlist"
 
 
 @lru_cache
