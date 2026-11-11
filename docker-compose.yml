@@ -20,6 +20,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://wishlist:${POSTGRES_PASSWORD:-wishlist}@db:5432/wishlist
+      MEDIA_DIR: /data/media
+    volumes:
+      - media-data:/data/media
     depends_on:
       db:
         condition: service_healthy
@@ -41,4 +44,5 @@ services:
 
 volumes:
   db-data:
+  media-data:
   caddy-data:

@@ -11,15 +11,53 @@ export interface Me {
   start_param: string | null
 }
 
+/** 1 = «Дуже хочу», 2 = «Хочу», 3 = «Було б непогано». */
+export type Priority = 1 | 2 | 3
+
+export interface Wish {
+  id: number
+  title: string
+  /** Decimal as a string, e.g. "249.99" (PLN). */
+  price: string | null
+  priority: Priority
+  url: string | null
+  description: string | null
+  has_photo: boolean
+  created_at: string
+}
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+    /** Human-readable `detail` from the backend, when it is a plain string. */
+    readonly detailText: string | null = null,
+  ) {
+    super(message)
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const resp = await fetch(path, {
-    ...init,
-    headers: { Authorization: authHeader(), 'Content-Type': 'application/json', ...init.headers },
-  })
-  if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`)
+  const headers: Record<string, string> = { Authorization: authHeader() }
+  // For FormData the browser sets the multipart Content-Type with its boundary itself.
+  if (init.body && !(init.body instanceof FormData)) headers['Content-Type'] = 'application/json'
+
+  const resp = await fetch(path, { ...init, headers: { ...headers, ...init.headers } })
+  if (!resp.ok) {
+    let detail: string | null = null
+    try {
+      const body = await resp.json()
+      if (typeof body.detail === 'string') detail = body.detail
+    } catch {
+      // Not JSON: keep the status text.
+    }
+    throw new ApiError(resp.status, detail ?? `${resp.status} ${resp.statusText}`, detail)
+  }
   return resp.json() as Promise<T>
 }
 
 export const api = {
   me: () => request<Me>('/api/me'),
+  /** Fields: title, price, priority, url, description, photo (optional file). */
+  createWish: (form: FormData) => request<Wish>('/api/wishes', { method: 'POST', body: form }),
 }
