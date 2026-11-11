@@ -23,6 +23,8 @@ export interface Wish {
   url: string | null
   description: string | null
   has_photo: boolean
+  /** Changes when the photo is replaced; use it to refetch. */
+  photo_version: string | null
   created_at: string
 }
 
@@ -64,8 +66,15 @@ export const api = {
   me: () => request<Me>('/api/me'),
   /** Fields: title, price, priority, url, description, photo (optional file). */
   createWish: (form: FormData) => request<Wish>('/api/wishes', { method: 'POST', body: form }),
+  /** Replaces all fields; send remove_photo=true to drop the photo. */
+  updateWish: (id: number, form: FormData) =>
+    request<Wish>(`/api/wishes/${id}`, { method: 'PATCH', body: form }),
+  deleteWish: async (id: number) => {
+    await send(`/api/wishes/${id}`, { method: 'DELETE' })
+  },
   /** Own wishes, already sorted: priority first, newest first. */
   myWishes: () => request<Wish[]>('/api/wishes'),
   /** Photos need the auth header, so they are fetched as a Blob rather than via <img src>. */
-  wishPhoto: async (id: number) => (await send(`/api/wishes/${id}/photo`)).blob(),
+  wishPhoto: async (id: number, version: string) =>
+    (await send(`/api/wishes/${id}/photo?v=${encodeURIComponent(version)}`)).blob(),
 }

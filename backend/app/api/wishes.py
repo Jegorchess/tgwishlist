@@ -12,11 +12,36 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.auth.deps import CurrentUser
 from app.config import Settings, get_settings
 from app.db import SessionDep
-from app.models import Priority
+from app.models import Priority, WishItem
 from app.services.photos import InvalidPhoto, PhotoTooLarge, read_limited, save_photo
-from app.services.wishes import create_wish, get_wish_for_reader, list_own_wishes
+from app.services.wishes import (
+    create_wish,
+    delete_wish,
+    get_own_wish,
+    get_wish_for_reader,
+    list_own_wishes,
+    update_wish,
+)
 
 router = APIRouter(prefix="/api/wishes", tags=["wishes"])
+
+
+async def _store_upload(photo: UploadFile | None, media_dir: Path) -> str | None:
+    """Validate and save an uploaded photo; ``None`` when no file was sent."""
+    if photo is None or not photo.filename:
+        return None
+    try:
+        data = await read_limited(photo)
+        return await run_in_threadpool(save_photo, data, media_dir)
+    except PhotoTooLarge as exc:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(exc)) from exc
+    except InvalidPhoto as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+
+
+def _remove_file(media_dir: Path, name: str | None) -> None:
+    if name:
+        (media_dir / name).unlink(missing_ok=True)
 
 
 def _blank_to_none(value: object) -> object:
@@ -65,6 +90,12 @@ class WishCreate(BaseModel):
         return value
 
 
+class WishUpdate(WishCreate):
+    """All fields are replaced. ``remove_photo`` drops the photo unless a new one is uploaded."""
+
+    remove_photo: bool = False
+
+
 class WishOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -75,6 +106,7 @@ class WishOut(BaseModel):
     url: str | None
     description: str | None
     has_photo: bool
+    photo_version: str | None
     created_at: datetime
 
 
@@ -91,17 +123,8 @@ async def add_wish(
     form: Annotated[WishCreate, Form()],
     photo: Annotated[UploadFile | None, File()] = None,
 ) -> WishOut:
-    photo_name = None
     media_dir = Path(settings.media_dir)
-    if photo is not None and photo.filename:
-        try:
-            data = await read_limited(photo)
-            photo_name = await run_in_threadpool(save_photo, data, media_dir)
-        except PhotoTooLarge as exc:
-            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(exc)) from exc
-        except InvalidPhoto as exc:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
-
+    photo_name = await _store_upload(photo, media_dir)
     try:
         wish = await create_wish(
             session,
@@ -114,10 +137,62 @@ async def add_wish(
             photo_name=photo_name,
         )
     except BaseException:  # incl. cancellation: don't leave an orphan file
-        if photo_name:
-            (media_dir / photo_name).unlink(missing_ok=True)
+        _remove_file(media_dir, photo_name)
         raise
+    # Outside the guard: after a successful commit the row references the file.
+    await session.refresh(wish)
     return WishOut.model_validate(wish)
+
+
+async def _own_wish_or_404(session: SessionDep, wish_id: int, user: CurrentUser) -> WishItem:
+    wish = await get_own_wish(session, wish_id, user)
+    if wish is None:
+        # Same answer for "someone else's" and "does not exist": don't reveal other wishes.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Wish not found")
+    return wish
+
+
+@router.patch("/{wish_id}")
+async def edit_wish(
+    wish_id: int,
+    user: CurrentUser,
+    session: SessionDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+    form: Annotated[WishUpdate, Form()],
+    photo: Annotated[UploadFile | None, File()] = None,
+) -> WishOut:
+    wish = await _own_wish_or_404(session, wish_id, user)
+    media_dir = Path(settings.media_dir)
+    new_photo = await _store_upload(photo, media_dir)
+    try:
+        unused_photo = await update_wish(
+            session,
+            wish,
+            title=form.title,
+            price=form.price,
+            priority=form.priority,
+            url=form.url,
+            description=form.description,
+            new_photo_name=new_photo,
+            remove_photo=form.remove_photo,
+        )
+    except BaseException:  # commit failed: the new file is not referenced
+        _remove_file(media_dir, new_photo)
+        raise
+    _remove_file(media_dir, unused_photo)
+    await session.refresh(wish)
+    return WishOut.model_validate(wish)
+
+
+@router.delete("/{wish_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_wish(
+    wish_id: int,
+    user: CurrentUser,
+    session: SessionDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    wish = await _own_wish_or_404(session, wish_id, user)
+    _remove_file(Path(settings.media_dir), await delete_wish(session, wish))
 
 
 @router.get("/{wish_id}/photo", response_class=FileResponse)
@@ -134,5 +209,7 @@ async def wish_photo(
     return FileResponse(
         path,
         media_type="image/jpeg",
-        headers={"Cache-Control": "private, max-age=86400"},
+        # Each photo file is never modified (a replacement gets a new name and version),
+        # and clients request it as ?v=<photo_version>, so it can be cached forever.
+        headers={"Cache-Control": "private, max-age=31536000, immutable"},
     )

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api, ApiError, type Wish } from './api'
-import { haptic, useBackButton } from './telegram'
+import { confirmDialog, haptic, useBackButton } from './telegram'
+import { useWishPhoto } from './WishCard'
 import {
   DESCRIPTION_MAX,
   PRIORITIES,
   TITLE_MAX,
   emptyWishForm,
+  fromWish,
   toFormData,
   validateWish,
   type WishFormErrors,
@@ -13,12 +15,17 @@ import {
 } from './wishForm'
 
 interface Props {
+  /** The wish being edited; omitted when adding a new one. */
+  wish?: Wish
   onSaved: (wish: Wish) => void
+  onDeleted: () => void
   onCancel: () => void
 }
 
-export default function AddWishForm({ onSaved, onCancel }: Props) {
-  const [values, setValues] = useState<WishFormValues>(emptyWishForm)
+export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props) {
+  const editing = wish !== undefined
+  const [values, setValues] = useState<WishFormValues>(() => (wish ? fromWish(wish) : emptyWishForm))
+  const existingPhoto = useWishPhoto(wish)
   const [errors, setErrors] = useState<WishFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -56,9 +63,10 @@ export default function AddWishForm({ onSaved, onCancel }: Props) {
     }
     setSaving(true)
     try {
-      const wish = await api.createWish(toFormData(values))
+      const form = toFormData(values, editing)
+      const saved = wish ? await api.updateWish(wish.id, form) : await api.createWish(form)
       haptic('success')
-      onSaved(wish)
+      onSaved(saved)
     } catch (err) {
       haptic('error')
       if (err instanceof ApiError && err.status === 413)
@@ -66,6 +74,8 @@ export default function AddWishForm({ onSaved, onCancel }: Props) {
       else if (err instanceof ApiError && err.status === 422 && err.detailText)
         // A plain-text reason comes only from the photo check (e.g. "Файл не є зображенням").
         setErrors({ photo: err.detailText })
+      else if (err instanceof ApiError && err.status === 404)
+        setSubmitError('Цього бажання вже немає. Повернись до списку.')
       else if (err instanceof ApiError && err.status === 422)
         setSubmitError('Сервер не прийняв дані. Перевір поля і спробуй ще раз.')
       else setSubmitError('Не вдалося зберегти. Перевір з’єднання і спробуй ще раз.')
@@ -74,9 +84,43 @@ export default function AddWishForm({ onSaved, onCancel }: Props) {
     }
   }
 
+  async function remove() {
+    if (!wish) return
+    setSaving(true) // also blocks a second tap while the dialog is open
+    setSubmitError(null)
+    if (!(await confirmDialog(`Видалити бажання «${wish.title}»?`, 'Видалити'))) {
+      setSaving(false)
+      return
+    }
+    try {
+      await api.deleteWish(wish.id)
+      haptic('success')
+      onDeleted()
+    } catch (err) {
+      haptic('error')
+      // Already gone (e.g. deleted from another device): the goal is reached.
+      if (err instanceof ApiError && err.status === 404) onDeleted()
+      else setSubmitError('Не вдалося видалити. Перевір з’єднання і спробуй ще раз.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const photoInput = (
+    <input
+      type="file"
+      accept="image/*,.heic,.heif"
+      hidden
+      onChange={(e) => {
+        set('photo', e.target.files?.[0] ?? null)
+        e.target.value = ''
+      }}
+    />
+  )
+
   return (
     <form className="wish-form" onSubmit={submit} noValidate>
-      <h2>Нове бажання</h2>
+      <h2>{editing ? 'Редагування' : 'Нове бажання'}</h2>
 
       <label className="field">
         <span>Назва *</span>
@@ -86,7 +130,7 @@ export default function AddWishForm({ onSaved, onCancel }: Props) {
           maxLength={TITLE_MAX}
           placeholder="Наприклад, навушники"
           aria-invalid={Boolean(errors.title)}
-          autoFocus
+          autoFocus={!editing}
         />
         {errors.title && <small className="error">{errors.title}</small>}
       </label>
@@ -158,22 +202,38 @@ export default function AddWishForm({ onSaved, onCancel }: Props) {
             ) : (
               <div className="photo-name">📷 {values.photo.name}</div>
             )}
-            <button type="button" className="link" onClick={() => set('photo', null)}>
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                set('photo', null)
+                set('keepPhoto', false)
+              }}
+            >
               Прибрати фото
             </button>
+          </div>
+        ) : values.keepPhoto ? (
+          <div className="photo-preview">
+            {existingPhoto ? (
+              <img src={existingPhoto} alt="" />
+            ) : (
+              <div className="photo-name">📷 Поточне фото</div>
+            )}
+            <div className="photo-actions">
+              <label className="link">
+                Замінити фото
+                {photoInput}
+              </label>
+              <button type="button" className="link" onClick={() => set('keepPhoto', false)}>
+                Прибрати фото
+              </button>
+            </div>
           </div>
         ) : (
           <label className="photo-pick">
             📷 Додати фото
-            <input
-              type="file"
-              accept="image/*,.heic,.heif"
-              hidden
-              onChange={(e) => {
-                set('photo', e.target.files?.[0] ?? null)
-                e.target.value = ''
-              }}
-            />
+            {photoInput}
           </label>
         )}
         {errors.photo && <small className="error">{errors.photo}</small>}
@@ -189,6 +249,12 @@ export default function AddWishForm({ onSaved, onCancel }: Props) {
           Скасувати
         </button>
       </div>
+
+      {editing && (
+        <button type="button" className="danger" onClick={remove} disabled={saving}>
+          🗑 Видалити бажання
+        </button>
+      )}
     </form>
   )
 }

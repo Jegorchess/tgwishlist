@@ -60,3 +60,8 @@ class WishItem(Base):
     @property
     def has_photo(self) -> bool:
         return self.photo_name is not None
+
+    @property
+    def photo_version(self) -> str | None:
+        """Changes whenever the photo is replaced, so clients know to refetch it."""
+        return self.photo_name[:12] if self.photo_name else None

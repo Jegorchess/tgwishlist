@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import AddWishForm from './AddWishForm'
 import { api, type Me, type Wish } from './api'
 import { insideTelegram } from './telegram'
+import WishEditor from './WishEditor'
 import WishList from './WishList'
 
-type View = 'home' | 'add-wish'
+type View = { name: 'home' } | { name: 'wish-form'; wish?: Wish }
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [avatarFailed, setAvatarFailed] = useState(false)
-  const [view, setView] = useState<View>('home')
+  const [view, setView] = useState<View>({ name: 'home' })
   const [notice, setNotice] = useState<string | null>(null)
   const [wishes, setWishes] = useState<Wish[] | null>(null)
   const [wishesError, setWishesError] = useState(false)
@@ -47,18 +47,35 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [notice])
 
-  const goHome = useCallback(() => setView('home'), [])
-  const openAddWish = useCallback(() => setView('add-wish'), [])
-  const onWishSaved = useCallback(() => {
-    setNotice('✅ Бажання додано')
-    setView('home')
-    loadWishes() // the server knows the right place of the new wish in the sorted list
-  }, [loadWishes])
+  const goHome = useCallback(() => setView({ name: 'home' }), [])
+  const openAddWish = useCallback(() => setView({ name: 'wish-form' }), [])
+  const openEditWish = useCallback((wish: Wish) => setView({ name: 'wish-form', wish }), [])
+  const editing = view.name === 'wish-form' && view.wish !== undefined
 
-  if (view === 'add-wish') {
+  const backToList = useCallback(
+    (message: string) => {
+      setNotice(message)
+      setView({ name: 'home' })
+      loadWishes() // the server knows the right place of the wish in the sorted list
+    },
+    [loadWishes],
+  )
+  const onWishSaved = useCallback(
+    () => backToList(editing ? '✅ Зміни збережено' : '✅ Бажання додано'),
+    [backToList, editing],
+  )
+  const onWishDeleted = useCallback(() => backToList('🗑 Бажання видалено'), [backToList])
+
+  if (view.name === 'wish-form') {
     return (
       <main className="app">
-        <AddWishForm onSaved={onWishSaved} onCancel={goHome} />
+        <WishEditor
+          key={view.wish?.id ?? 'new'}
+          wish={view.wish}
+          onSaved={onWishSaved}
+          onDeleted={onWishDeleted}
+          onCancel={goHome}
+        />
       </main>
     )
   }
@@ -93,6 +110,7 @@ export default function App() {
             error={wishesError}
             onRetry={loadWishes}
             onAdd={openAddWish}
+            onOpen={openEditWish}
           />
         </>
       )}

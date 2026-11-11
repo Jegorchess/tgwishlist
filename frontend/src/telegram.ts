@@ -22,6 +22,14 @@ interface WebApp {
   expand(): void
   BackButton: BackButton
   openLink(url: string): void
+  showPopup(
+    params: {
+      message: string
+      buttons: { id: string; type: 'default' | 'destructive' | 'cancel'; text?: string }[]
+    },
+    callback: (buttonId: string) => void,
+  ): void
+  isVersionAtLeast(version: string): boolean
   HapticFeedback?: { notificationOccurred(type: 'error' | 'success' | 'warning'): void }
 }
 
@@ -70,4 +78,23 @@ export function haptic(type: 'error' | 'success'): void {
 export function openLink(url: string): void {
   if (insideTelegram && webApp) webApp.openLink(url)
   else window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+/** Native Telegram dialog with a destructive action button (falls back to confirm()). */
+export function confirmDialog(message: string, confirmText: string): Promise<boolean> {
+  if (insideTelegram && webApp?.isVersionAtLeast('6.2')) {
+    return new Promise((resolve) =>
+      webApp.showPopup(
+        {
+          message,
+          buttons: [
+            { id: 'confirm', type: 'destructive', text: confirmText },
+            { id: 'cancel', type: 'default', text: 'Скасувати' },
+          ],
+        },
+        (id) => resolve(id === 'confirm'),
+      ),
+    )
+  }
+  return Promise.resolve(window.confirm(message))
 }

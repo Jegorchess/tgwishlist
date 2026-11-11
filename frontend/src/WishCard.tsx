@@ -13,15 +13,19 @@ export function formatPrice(price: string): string {
   return `${priceFormat.format(Number(price))} zł`
 }
 
-function WishPhoto({ wish }: { wish: Wish }) {
+/** Object URL of the wish's photo (fetched with auth); null while loading or without a photo. */
+export function useWishPhoto(wish: Wish | undefined): string | null {
   const [src, setSrc] = useState<string | null>(null)
+  const id = wish?.id
+  const version = wish?.photo_version ?? null
 
   useEffect(() => {
-    if (!wish.has_photo) return
+    setSrc(null)
+    if (id === undefined || version === null) return
     let url: string | null = null
     let cancelled = false
     api
-      .wishPhoto(wish.id)
+      .wishPhoto(id, version)
       .then((blob) => {
         if (cancelled) return
         url = URL.createObjectURL(blob)
@@ -32,8 +36,13 @@ function WishPhoto({ wish }: { wish: Wish }) {
       cancelled = true
       if (url) URL.revokeObjectURL(url)
     }
-  }, [wish.id, wish.has_photo])
+  }, [id, version])
 
+  return src
+}
+
+function WishPhoto({ wish }: { wish: Wish }) {
+  const src = useWishPhoto(wish)
   return src ? (
     <img className="wish-photo" src={src} alt="" />
   ) : (
@@ -43,15 +52,32 @@ function WishPhoto({ wish }: { wish: Wish }) {
   )
 }
 
-export default function WishCard({ wish }: { wish: Wish }) {
+interface Props {
+  wish: Wish
+  /** Tap on the card opens editing. */
+  onOpen: (wish: Wish) => void
+}
+
+export default function WishCard({ wish, onOpen }: Props) {
   const [expanded, setExpanded] = useState(false)
   const priority = PRIORITIES.find((p) => p.value === wish.priority)
 
   return (
+    // The title button is stretched over the whole card (CSS ::after), so tapping anywhere
+    // opens editing; the description toggle and the link sit above it as separate controls.
     <article className="wish-card">
       <WishPhoto wish={wish} />
       <div className="wish-body">
-        <h3 className="wish-title">{wish.title}</h3>
+        <h3 className="wish-title">
+          <button
+            type="button"
+            className="wish-open"
+            aria-label={`Редагувати «${wish.title}»`}
+            onClick={() => onOpen(wish)}
+          >
+            {wish.title}
+          </button>
+        </h3>
         <div className="wish-meta">
           {priority && (
             <span className={`priority-badge priority-${wish.priority}`}>{priority.label}</span>
@@ -59,24 +85,21 @@ export default function WishCard({ wish }: { wish: Wish }) {
           {wish.price !== null && <span className="wish-price">{formatPrice(wish.price)}</span>}
         </div>
         {wish.description && (
-          <p
-            className={`wish-description ${expanded ? 'expanded' : ''}`}
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            className={`wish-description above-card-link ${expanded ? 'expanded' : ''}`}
             aria-expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                setExpanded((v) => !v)
-              }
-            }}
           >
             {wish.description}
-          </p>
+          </button>
         )}
         {wish.url && (
-          <button type="button" className="link" onClick={() => openLink(wish.url!)}>
+          <button
+            type="button"
+            className="link above-card-link"
+            onClick={() => openLink(wish.url!)}
+          >
             🔗 Відкрити посилання
           </button>
         )}
