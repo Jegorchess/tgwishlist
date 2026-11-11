@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import AddWishForm from './AddWishForm'
-import { api, type Me } from './api'
+import { api, type Me, type Wish } from './api'
 import { insideTelegram } from './telegram'
+import WishList from './WishList'
 
 type View = 'home' | 'add-wish'
 
@@ -11,10 +12,34 @@ export default function App() {
   const [avatarFailed, setAvatarFailed] = useState(false)
   const [view, setView] = useState<View>('home')
   const [notice, setNotice] = useState<string | null>(null)
+  const [wishes, setWishes] = useState<Wish[] | null>(null)
+  const [wishesError, setWishesError] = useState(false)
+
+  const latestRequest = useRef(0)
+  const listShown = useRef(false)
+
+  const loadWishes = useCallback(() => {
+    const request = ++latestRequest.current
+    setWishesError(false)
+    api
+      .myWishes()
+      .then((list) => {
+        if (request !== latestRequest.current) return // a newer request is in flight
+        listShown.current = true
+        setWishes(list)
+      })
+      .catch(() => {
+        if (request !== latestRequest.current) return
+        // Keep a list that is already on screen; only show the error state on first load.
+        if (listShown.current) setNotice('⚠️ Не вдалося оновити список')
+        else setWishesError(true)
+      })
+  }, [])
 
   useEffect(() => {
     api.me().then(setMe).catch((e: Error) => setError(e.message))
-  }, [])
+    loadWishes()
+  }, [loadWishes])
 
   useEffect(() => {
     if (!notice) return
@@ -23,10 +48,12 @@ export default function App() {
   }, [notice])
 
   const goHome = useCallback(() => setView('home'), [])
+  const openAddWish = useCallback(() => setView('add-wish'), [])
   const onWishSaved = useCallback(() => {
-    setNotice('Бажання додано')
+    setNotice('✅ Бажання додано')
     setView('home')
-  }, [])
+    loadWishes() // the server knows the right place of the new wish in the sorted list
+  }, [loadWishes])
 
   if (view === 'add-wish') {
     return (
@@ -41,7 +68,7 @@ export default function App() {
       <h1>🎁 Сімейний вішліст</h1>
       {notice && (
         <p className="notice" role="status">
-          ✅ {notice}
+          {notice}
         </p>
       )}
       {error && <p className="error">Не вдалося завантажити профіль: {error}</p>}
@@ -61,9 +88,12 @@ export default function App() {
             )}
             <p>Привіт, {me.first_name}!</p>
           </div>
-          <button className="primary" onClick={() => setView('add-wish')}>
-            ➕ Додати бажання
-          </button>
+          <WishList
+            wishes={wishes}
+            error={wishesError}
+            onRetry={loadWishes}
+            onAdd={openAddWish}
+          />
         </>
       )}
       {!insideTelegram && <p className="hint">Режим розробки: відкрито поза Telegram.</p>}

@@ -14,7 +14,7 @@ from app.config import Settings, get_settings
 from app.db import SessionDep
 from app.models import Priority
 from app.services.photos import InvalidPhoto, PhotoTooLarge, read_limited, save_photo
-from app.services.wishes import create_wish, get_wish_for_reader
+from app.services.wishes import create_wish, get_wish_for_reader, list_own_wishes
 
 router = APIRouter(prefix="/api/wishes", tags=["wishes"])
 
@@ -76,6 +76,11 @@ class WishOut(BaseModel):
     description: str | None
     has_photo: bool
     created_at: datetime
+
+
+@router.get("")
+async def my_wishes(user: CurrentUser, session: SessionDep) -> list[WishOut]:
+    return [WishOut.model_validate(w) for w in await list_own_wishes(session, user)]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

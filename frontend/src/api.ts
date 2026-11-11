@@ -37,7 +37,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function send(path: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = { Authorization: authHeader() }
   // For FormData the browser sets the multipart Content-Type with its boundary itself.
   if (init.body && !(init.body instanceof FormData)) headers['Content-Type'] = 'application/json'
@@ -53,11 +53,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new ApiError(resp.status, detail ?? `${resp.status} ${resp.statusText}`, detail)
   }
-  return resp.json() as Promise<T>
+  return resp
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await send(path, init)).json() as Promise<T>
 }
 
 export const api = {
   me: () => request<Me>('/api/me'),
   /** Fields: title, price, priority, url, description, photo (optional file). */
   createWish: (form: FormData) => request<Wish>('/api/wishes', { method: 'POST', body: form }),
+  /** Own wishes, already sorted: priority first, newest first. */
+  myWishes: () => request<Wish[]>('/api/wishes'),
+  /** Photos need the auth header, so they are fetched as a Blob rather than via <img src>. */
+  wishPhoto: async (id: number) => (await send(`/api/wishes/${id}/photo`)).blob(),
 }
