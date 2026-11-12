@@ -14,6 +14,17 @@ export interface Me {
   is_admin: boolean
 }
 
+/** Admin view of someone who joined via the invite link. */
+export interface Member {
+  telegram_id: number
+  first_name: string
+  last_name: string | null
+  photo_url: string | null
+  granted_at: string
+  revoked: boolean
+  is_admin: boolean
+}
+
 /** Visible only to people other than the wish's owner. */
 export interface Reservation {
   mine: boolean
@@ -58,6 +69,9 @@ export interface Wish {
   received_at?: string | null
 }
 
+/** Fired on any 403: the app re-reads /api/me and shows the lock screen if needed. */
+export const ACCESS_LOST = 'wishlist:access-lost'
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -83,6 +97,8 @@ async function send(path: string, init: RequestInit = {}): Promise<Response> {
     } catch {
       // Not JSON: keep the status text.
     }
+    // 403 means access was taken away while the app was open: let the app re-check.
+    if (resp.status === 403) window.dispatchEvent(new Event(ACCESS_LOST))
     throw new ApiError(resp.status, detail ?? `${resp.status} ${resp.statusText}`, detail)
   }
   return resp
@@ -105,6 +121,13 @@ export const api = {
     (await send(`/api/link-preview/image?url=${encodeURIComponent(url)}`)).blob(),
   /** Admin only. */
   invite: () => request<{ link: string }>('/api/invite'),
+  members: () => request<Member[]>('/api/admin/members'),
+  revokeMember: async (telegramId: number) => {
+    await send(`/api/admin/members/${telegramId}/revoke`, { method: 'POST' })
+  },
+  restoreMember: async (telegramId: number) => {
+    await send(`/api/admin/members/${telegramId}/restore`, { method: 'POST' })
+  },
   regenerateInvite: () => request<{ link: string }>('/api/invite/regenerate', { method: 'POST' }),
   /** Fields: title, price, priority, url, description, photo (optional file). */
   createWish: (form: FormData) => request<Wish>('/api/wishes', { method: 'POST', body: form }),

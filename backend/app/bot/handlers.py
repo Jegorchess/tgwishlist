@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings, get_settings
 from app.db import get_sessionmaker
-from app.services.access import has_access, redeem_invite
+from app.services.access import has_access, is_blocked, redeem_invite
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ WELCOME = "Привіт! Це вішліст для рідних і друзів
 JOINED = "Вітаю! Тепер у тебе є доступ до вішліста 🎁"
 INVALID_INVITE = "Посилання недійсне. Попроси нове в того, хто тебе запросив."
 PRIVATE = "Це приватний вішліст. Доступ — лише за запрошенням."
+BLOCKED = "Доступ закрито. Звернись до того, хто тебе запросив."
 FAILED = "Щось пішло не так. Спробуй ще раз трохи пізніше."
 
 
@@ -27,14 +28,20 @@ class StartReply:
 
 
 async def start_reply(
-    session: AsyncSession, settings: Settings, telegram_id: int, code: str | None
+    session: AsyncSession,
+    settings: Settings,
+    telegram_id: int,
+    code: str | None,
+    first_name: str | None = None,
 ) -> StartReply:
     """What the bot answers to ``/start`` or ``/start <invite code>``."""
     if await has_access(session, settings, telegram_id):
         return StartReply(WELCOME, True)
+    if await is_blocked(session, telegram_id):
+        return StartReply(BLOCKED, False)
     if not code:
         return StartReply(PRIVATE, False)
-    if await redeem_invite(session, telegram_id, code):
+    if await redeem_invite(session, telegram_id, code, first_name):
         return StartReply(JOINED, True)
     return StartReply(INVALID_INVITE, False)
 
@@ -47,7 +54,13 @@ async def start(message: Message, command: CommandObject) -> None:
     settings = get_settings()
     try:
         async with get_sessionmaker()() as session:
-            reply = await start_reply(session, settings, message.from_user.id, command.args)
+            reply = await start_reply(
+                session,
+                settings,
+                message.from_user.id,
+                command.args,
+                message.from_user.first_name,
+            )
     except Exception:
         log.exception("Failed to handle /start")
         await message.answer(FAILED)
