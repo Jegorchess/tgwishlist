@@ -42,7 +42,7 @@ export default function WishList({ wishes, error, onRetry, onAdd, onOpen, archiv
         <section className="wish-list-state">
           <p className="hint">Тут поки порожньо — додай першу хотєлку</p>
           <button type="button" className="primary" onClick={onAdd}>
-            ➕ Додати хотєлку
+            <PlusIcon /> Додати хотєлку
           </button>
         </section>
         <Archive wishes={archived} onOpen={onOpen} />
@@ -53,7 +53,7 @@ export default function WishList({ wishes, error, onRetry, onAdd, onOpen, archiv
   return (
     <section>
       <button type="button" className="primary" onClick={onAdd}>
-        ➕ Додати хотєлку
+        <PlusIcon /> Додати хотєлку
       </button>
       <h2 className="section-title">Мої хотєлки</h2>
       <p className="hint small">Натисни на хотєлку, щоб змінити або видалити її</p>
@@ -101,5 +101,14 @@ function Archive({ wishes, onOpen }: { wishes: Wish[]; onOpen: (wish: Wish) => v
         ))}
       </div>
     </details>
+  )
+}
+
+/** A plain "+" in the button's text color (an emoji would keep its own colors). */
+function PlusIcon() {
+  return (
+    <svg className="btn-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
   )
 }
