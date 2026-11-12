@@ -684,3 +684,23 @@ label.link {
 .secondary:active:not(:disabled) {
   transform: scale(0.98);
 }
+
+/* --- archive --------------------------------------------------------------- */
+.received-button {
+  margin-top: 8px;
+}
+
+.archive {
+  margin-top: 24px;
+}
+
+.archive summary {
+  color: var(--hint);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.archive-list {
+  margin-top: 12px;
+  opacity: 0.75;
+}

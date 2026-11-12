@@ -94,7 +94,11 @@ async def my_reservations(
             select(WishItem, User)
             .join(Reservation, Reservation.wish_id == WishItem.id)
             .join(User, User.id == WishItem.owner_id)
-            .where(Reservation.reserver_id == reserver.id, has_access_condition(settings))
+            .where(
+                Reservation.reserver_id == reserver.id,
+                WishItem.received_at.is_(None),  # also guards a race with «Отримано»
+                has_access_condition(settings),
+            )
             .order_by(Reservation.created_at.desc(), WishItem.id.desc())
         )
     ).all()
@@ -104,7 +108,7 @@ async def my_reservations(
             (
                 await session.execute(
                     select(WishItem.owner_id, func.count())
-                    .where(WishItem.owner_id.in_(owner_ids))
+                    .where(WishItem.owner_id.in_(owner_ids), WishItem.received_at.is_(None))
                     .group_by(WishItem.owner_id)
                 )
             ).all()

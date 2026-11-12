@@ -50,7 +50,7 @@ async def reserve_wish(
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> OthersWishOut:
-    wish = await get_wish_for_reader(session, settings, wish_id)
+    wish = await get_wish_for_reader(session, settings, wish_id, user)
     if wish is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Wish not found")
     try:

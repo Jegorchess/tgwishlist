@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
@@ -34,29 +34,59 @@ async def create_wish(
 
 
 async def list_own_wishes(session: AsyncSession, owner: User) -> list[WishItem]:
-    """Owner's wishes: most wanted first, newest first within the same priority.
+    """Owner's active wishes: most wanted first, newest first within the same priority.
 
-    Used both for "my wishes" and for browsing another person's list.
+    Used both for "my wishes" and for browsing another person's list. Received
+    (archived) wishes are not included.
     """
     result = await session.scalars(
         select(WishItem)
-        .where(WishItem.owner_id == owner.id)
+        .where(WishItem.owner_id == owner.id, WishItem.received_at.is_(None))
         .order_by(WishItem.priority, WishItem.created_at.desc(), WishItem.id.desc())
     )
     return list(result)
 
 
+async def list_archived_wishes(session: AsyncSession, owner: User) -> list[WishItem]:
+    """The owner's received wishes, most recently received first."""
+    result = await session.scalars(
+        select(WishItem)
+        .where(WishItem.owner_id == owner.id, WishItem.received_at.is_not(None))
+        .order_by(WishItem.received_at.desc(), WishItem.id.desc())
+    )
+    return list(result)
+
+
+async def mark_received(session: AsyncSession, wish: WishItem) -> None:
+    """Archive the wish; its reservation (if any) is closed. The caller notifies the gifter."""
+    wish.received_at = func.now()
+    await session.execute(delete(Reservation).where(Reservation.wish_id == wish.id))
+    await session.commit()
+
+
+async def restore_wish(session: AsyncSession, wish: WishItem) -> None:
+    wish.received_at = None
+    await session.commit()
+
+
 async def get_wish_for_reader(
-    session: AsyncSession, settings: Settings, wish_id: int
+    session: AsyncSession, settings: Settings, wish_id: int, reader: User
 ) -> WishItem | None:
-    """A wish visible to members: its owner must still have access (same rule as «Люди»).
+    """A wish ``reader`` may see: any of their own, or someone's active wish while that
+    owner has access (same rule as «Люди»). Received wishes are private to the owner.
 
     The reader's own access is checked by the caller (MemberUser).
     """
     return await session.scalar(
         select(WishItem)
         .join(User, User.id == WishItem.owner_id)
-        .where(WishItem.id == wish_id, has_access_condition(settings))
+        .where(
+            WishItem.id == wish_id,
+            or_(
+                WishItem.owner_id == reader.id,
+                and_(WishItem.received_at.is_(None), has_access_condition(settings)),
+            ),
+        )
     )
 
 

@@ -23,6 +23,7 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [wishes, setWishes] = useState<Wish[] | null>(null)
   const [wishesError, setWishesError] = useState(false)
+  const [archived, setArchived] = useState<Wish[]>([])
 
   const latestRequest = useRef(0)
   const listShown = useRef(false)
@@ -30,6 +31,10 @@ export default function App() {
   const loadWishes = useCallback(() => {
     const request = ++latestRequest.current
     setWishesError(false)
+    api
+      .archive()
+      .then((list) => request === latestRequest.current && setArchived(list))
+      .catch(() => {}) // secondary block: the active list still works
     api
       .myWishes()
       .then((list) => {
@@ -98,6 +103,7 @@ export default function App() {
           wish={view.wish}
           onSaved={onWishSaved}
           onDeleted={onWishDeleted}
+          onArchiveChanged={backToList}
           onCancel={goHome}
         />
       </main>
@@ -156,6 +162,7 @@ export default function App() {
               wishes={wishes}
               error={wishesError}
               onRetry={loadWishes}
+              archived={archived}
               onAdd={openAddWish}
               onOpen={openEditWish}
             />

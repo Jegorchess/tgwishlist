@@ -54,6 +54,8 @@ export interface Wish {
   /** Changes when the photo is replaced; use it to refetch. */
   photo_version: string | null
   created_at: string
+  /** Set when the owner marked it as received (it's in the archive). */
+  received_at?: string | null
 }
 
 export class ApiError extends Error {
@@ -123,6 +125,10 @@ export const api = {
     await send(`/api/wishes/${wishId}/reservation`, { method: 'DELETE' })
   },
   myReservations: () => request<MyReservation[]>('/api/reservations'),
+  /** My received wishes, newest first. */
+  archive: () => request<Wish[]>('/api/wishes/archive'),
+  markReceived: (id: number) => request<Wish>(`/api/wishes/${id}/received`, { method: 'POST' }),
+  restoreWish: (id: number) => request<Wish>(`/api/wishes/${id}/restore`, { method: 'POST' }),
   /** Own wishes, already sorted: priority first, newest first. */
   myWishes: () => request<Wish[]>('/api/wishes'),
   /** Photos need the auth header, so they are fetched as a Blob rather than via <img src>. */
