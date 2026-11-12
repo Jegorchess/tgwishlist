@@ -41,7 +41,7 @@ export interface MyReservation {
   owner: Person
 }
 
-/** Someone who has wishes and can be browsed in «Люди». */
+/** Someone who has wishes and can be browsed in «Хотєлки інших». */
 export interface Person {
   id: number
   first_name: string
