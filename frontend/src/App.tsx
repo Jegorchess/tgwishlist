@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type Me, type Person, type Wish } from './api'
+import { ACCESS_LOST, api, type Me, type Person, type Wish } from './api'
 import Avatar from './Avatar'
 import { insideTelegram } from './telegram'
 import InviteCard from './InviteCard'
+import MembersCard from './MembersCard'
 import MyReservations from './MyReservations'
 import PeopleList from './PeopleList'
 import PersonWishes from './PersonWishes'
@@ -60,6 +61,20 @@ export default function App() {
       })
       .catch((e: Error) => setError(e.message))
   }, [loadWishes])
+
+  useEffect(() => {
+    const recheck = () => {
+      api
+        .me()
+        .then((profile) => {
+          setMe(profile)
+          if (!profile.has_access) setView({ name: 'home' }) // the lock screen lives there
+        })
+        .catch(() => {})
+    }
+    window.addEventListener(ACCESS_LOST, recheck)
+    return () => window.removeEventListener(ACCESS_LOST, recheck)
+  }, [])
 
   useEffect(() => {
     if (!notice) return
@@ -138,7 +153,12 @@ export default function App() {
             <Avatar name={me.first_name} photoUrl={me.photo_url} />
             <p>Привіт, {me.first_name}!</p>
           </div>
-          {me.is_admin && <InviteCard />}
+          {me.is_admin && (
+            <>
+              <InviteCard />
+              <MembersCard />
+            </>
+          )}
           <div className="tabs">
             <button
               type="button"

@@ -97,22 +97,33 @@ export function openLink(url: string): void {
 }
 
 /** Native Telegram dialog with a destructive action button (falls back to confirm()). */
-export function confirmDialog(message: string, confirmText: string): Promise<boolean> {
+export function confirmDialog(
+  message: string,
+  confirmText: string,
+  destructive = true,
+): Promise<boolean> {
+  // Telegram rejects popup texts over 256 characters (long names can get there).
+  const text = message.length > 256 ? `${message.slice(0, 255)}…` : message
   if (insideTelegram && webApp?.isVersionAtLeast('6.2')) {
-    return new Promise((resolve) =>
-      webApp.showPopup(
-        {
-          message,
-          buttons: [
-            { id: 'confirm', type: 'destructive', text: confirmText },
-            { id: 'cancel', type: 'default', text: 'Скасувати' },
-          ],
-        },
-        (id) => resolve(id === 'confirm'),
-      ),
-    )
+    return new Promise((resolve) => {
+      try {
+        webApp.showPopup(
+          {
+            message: text,
+            buttons: [
+              { id: 'confirm', type: destructive ? 'destructive' : 'default', text: confirmText },
+              { id: 'cancel', type: 'default', text: 'Скасувати' },
+            ],
+          },
+          (id) => resolve(id === 'confirm'),
+        )
+      } catch {
+        // e.g. another popup is already open: fall back to the browser dialog
+        resolve(window.confirm(text))
+      }
+    })
   }
-  return Promise.resolve(window.confirm(message))
+  return Promise.resolve(window.confirm(text))
 }
 
 /** Open a t.me link inside Telegram (e.g. the "share to chat" picker). */

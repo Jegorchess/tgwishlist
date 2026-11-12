@@ -704,3 +704,32 @@ label.link {
   margin-top: 12px;
   opacity: 0.75;
 }
+
+/* --- members (admin) --------------------------------------------------------- */
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.member-row.revoked {
+  opacity: 0.6;
+}
+
+.member-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.member-name small {
+  font-weight: 400;
+}
+
+.danger-link {
+  color: var(--danger);
+}

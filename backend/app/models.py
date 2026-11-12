@@ -76,6 +76,11 @@ class AccessGrant(Base):
 
     telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Name from Telegram at the moment of joining: shown to the admin even before the
+    # person opens the Mini App (which creates their profile).
+    first_name: Mapped[str | None] = mapped_column(String(255))
+    # Set when the admin takes access away: the person is blocked, even with a valid link.
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Invite(Base):
