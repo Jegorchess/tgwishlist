@@ -10,5 +10,18 @@
   "eslint.workingDirectories": [
     "frontend"
   ],
-  "python.terminal.useEnvFile": true
+  "python.terminal.useEnvFile": true,
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5433,
+      "driver": "PostgreSQL",
+      "name": "tgbotwishlist",
+      "database": "wishlist",
+      "username": "wishlist",
+      "password": "wishlist"
+    }
+  ]
 }
