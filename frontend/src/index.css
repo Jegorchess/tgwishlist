@@ -81,6 +81,11 @@ button:disabled {
   color: var(--tg-theme-button-text-color, #ffffff);
 }
 
+.btn-icon {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
 .secondary {
   background: var(--field-bg);
   color: var(--text);
