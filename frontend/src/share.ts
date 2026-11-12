@@ -14,10 +14,6 @@ async function shareMyList(text: string): Promise<void> {
   }
 }
 
-export function shareList(): Promise<void> {
-  return shareMyList('🎁 Мої хотєлки')
-}
-
 export function shareWish(wish: Wish): Promise<void> {
   const price = wish.price !== null ? ` — ${formatPrice(wish.price)}` : ''
   return shareMyList(`🎁 Хочу: ${wish.title}${price}`)

@@ -875,14 +875,29 @@ label.link {
 }
 
 /* --- share ------------------------------------------------------------------ */
-.section-head {
+.share-icon {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--hint);
 }
 
-.share-button {
-  margin-top: 8px;
+.share-icon:active {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+/* Keep the title clear of the icon. */
+.wish-card.shareable .wish-body {
+  padding-right: 28px;
 }

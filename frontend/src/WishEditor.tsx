@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { api, ApiError, type Wish } from './api'
 import { confirmDialog, hasMainButton, haptic, useBackButton, useMainButton } from './telegram'
-import { shareWish } from './share'
 import { useLinkAutofill } from './useLinkAutofill'
 import { useWishPhoto } from './WishCard'
 import {
@@ -319,17 +318,6 @@ export default function WishEditor({
           Скасувати
         </button>
       </div>
-
-      {wish && !wish.received_at && (
-        <button
-          type="button"
-          className="secondary share-button"
-          onClick={() => void shareWish(wish)}
-          disabled={saving}
-        >
-          📤 Поділитися
-        </button>
-      )}
 
       {wish && (
         <button
