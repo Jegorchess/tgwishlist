@@ -69,7 +69,7 @@ export default function InviteCard() {
   }
 
   return (
-    <details className="invite-card">
+    <details className="invite-card" open>
       <summary>👋 Запросити рідних і друзів</summary>
       {error && <p className="error">Не вдалося отримати посилання.</p>}
       {!error && !link && <p className="hint">Завантаження…</p>}

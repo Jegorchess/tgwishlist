@@ -52,7 +52,7 @@ export default function MembersCard() {
   const blocked = members?.filter((m) => m.revoked) ?? []
 
   return (
-    <details className="invite-card">
+    <details className="invite-card" open>
       <summary>👥 Учасники{members ? ` (${active.length})` : ''}</summary>
       {error && <p className="error">Не вдалося виконати. Спробуй ще раз.</p>}
       {!members && !error && <p className="hint">Завантаження…</p>}

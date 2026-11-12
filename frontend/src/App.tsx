@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ACCESS_LOST, api, type Me, type Person, type Wish } from './api'
 import Avatar from './Avatar'
 import { insideTelegram } from './telegram'
-import InviteCard from './InviteCard'
-import MembersCard from './MembersCard'
+import AdminMenu from './AdminMenu'
 import MyReservations from './MyReservations'
 import PeopleList from './PeopleList'
 import PersonWishes from './PersonWishes'
@@ -127,7 +126,10 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>🎁 Вішліст</h1>
+      <header className="app-header">
+        <h1>🎁 Вішліст</h1>
+        {me?.has_access && me.is_admin && <AdminMenu />}
+      </header>
       {notice && (
         <p className="notice" role="status">
           {notice}
@@ -153,12 +155,6 @@ export default function App() {
             <Avatar name={me.first_name} photoUrl={me.photo_url} />
             <p>Привіт, {me.first_name}!</p>
           </div>
-          {me.is_admin && (
-            <>
-              <InviteCard />
-              <MembersCard />
-            </>
-          )}
           <div className="tabs">
             <button
               type="button"
