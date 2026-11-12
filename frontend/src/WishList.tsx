@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Wish } from './api'
 import { filterWishes, SEARCH_THRESHOLD, SearchBox } from './search'
+import { shareList } from './share'
 import WishCard from './WishCard'
 
 interface Props {
@@ -54,7 +55,16 @@ export default function WishList({ wishes, error, onRetry, onAdd, onOpen, archiv
       <button type="button" className="primary" onClick={onAdd}>
         ➕ Додати хотєлку
       </button>
-      <h2 className="section-title">Мої хотєлки</h2>
+      <div className="section-head">
+        <h2 className="section-title">Мої хотєлки</h2>
+        <button
+          type="button"
+          className="link"
+          onClick={() => void shareList()}
+        >
+          📤 Поділитися списком
+        </button>
+      </div>
       <p className="hint small">Натисни на хотєлку, щоб змінити або видалити її</p>
       {wishes.length > SEARCH_THRESHOLD && <SearchBox value={query} onChange={setQuery} />}
       <FilteredWishes wishes={wishes} query={query} onOpen={onOpen} />

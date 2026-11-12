@@ -873,3 +873,16 @@ label.link {
     animation: none;
   }
 }
+
+/* --- share ------------------------------------------------------------------ */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.share-button {
+  margin-top: 8px;
+}
