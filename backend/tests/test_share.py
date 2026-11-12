@@ -22,7 +22,7 @@ async def test_share_link_points_to_my_list(client):
     resp = await client.get("/api/share-link", headers=auth())
 
     assert resp.status_code == 200
-    assert resp.json() == {"link": f"https://t.me/test_bot?start=list_{me['id']}"}
+    assert resp.json() == {"link": f"https://t.me/test_bot?startapp=list_{me['id']}"}
     assert str(me["telegram_id"]) not in resp.json()["link"]
 
 

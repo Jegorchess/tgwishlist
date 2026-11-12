@@ -1,4 +1,4 @@
-"""Sharing my list: t.me/<bot>?start=list_<user id> opens the app on that list."""
+"""Sharing my list: t.me/<bot>?startapp=list_<user id> opens the app on that list."""
 
 import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -18,7 +18,12 @@ def shared_user_id(code: str | None) -> int | None:
 
 
 def share_link(bot_username: str, user_id: int) -> str:
-    return f"https://t.me/{bot_username}?start={share_code(user_id)}"
+    """Opens the bot's main Mini App directly (``startapp``) on this person's list.
+
+    Needs the main Mini App enabled in @BotFather; otherwise Telegram opens the bot chat.
+    Old ``?start=list_<id>`` links keep working through the bot.
+    """
+    return f"https://t.me/{bot_username}?startapp={share_code(user_id)}"
 
 
 def app_url_for_person(webapp_url: str, person_id: int | None) -> str:

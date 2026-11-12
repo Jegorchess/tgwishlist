@@ -1,5 +1,5 @@
 import { api, type Wish } from './api'
-import { haptic, openTelegramLink } from './telegram'
+import { haptic, openTelegramLink, webApp } from './telegram'
 import { formatPrice } from './WishCard'
 
 /** Open Telegram's "share to chat" picker with my list link and a text. */
@@ -19,8 +19,14 @@ export function shareWish(wish: Wish): Promise<void> {
   return shareMyList(`🎁 Хочу: ${wish.title}${price}`)
 }
 
-/** `?person=12` in the Mini App URL: opened from a shared link via the bot. */
+/**
+ * Whose list to open: `startapp=list_12` (link opened the Mini App directly) or
+ * `?person=12` (opened from the bot's button).
+ */
 export function sharedPersonId(): number | null {
+  const startParam = webApp?.initDataUnsafe.start_param ?? ''
+  const fromStart = /^list_(\d{1,10})$/.exec(startParam)
+  if (fromStart) return Number(fromStart[1])
   const raw = new URLSearchParams(window.location.search).get('person')
   return raw && /^\d{1,10}$/.test(raw) ? Number(raw) : null
 }
