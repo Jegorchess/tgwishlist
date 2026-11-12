@@ -21,3 +21,6 @@ dist/
 
 # Uploaded files (local dev)
 backend/media/
+
+# dev.ps1 state (PIDs, tunnel log)
+.dev/

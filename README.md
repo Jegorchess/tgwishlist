@@ -1,4 +1,4 @@
-# 🎁 Вішліст для рідних і друзів
+# ⭐ Хотєлочки — вішліст для рідних і друзів
 
 Telegram Mini App, де рідні й друзі ведуть свої списки бажань і бачать списки одне одного. Вхід — лише за посиланням-запрошенням.
 
@@ -8,6 +8,14 @@ Telegram Mini App, де рідні й друзі ведуть свої спис�
 - [Бачення продукту](docs/vision.md)
 - [Беклог](docs/backlog.md)
 - [Правила роботи](CLAUDE.md)
+
+## Запуск однією командою (Windows)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\dev.ps1       # Docker, база, міграції, бекенд, фронт, тунель, бот
+powershell -ExecutionPolicy Bypass -File .\dev-stop.ps1  # зупинити все, що запустив dev.ps1
+```
+Скрипт сам впише нову адресу тунелю в `WEBAPP_URL` у `backend/.env` перед стартом бота.
+Після запуску надішли боту `/start` і відкрий застосунок **новою** кнопкою.
 
 ## Запуск локально
 Потрібно: Git, Node.js 22, [uv](https://docs.astral.sh/uv/) (сам поставить Python 3.12), Docker Desktop.
