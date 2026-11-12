@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Wish } from './api'
 import { filterWishes, SEARCH_THRESHOLD, SearchBox } from './search'
+import { shareWish } from './share'
 import WishCard from './WishCard'
 
 interface Props {
@@ -82,7 +83,7 @@ function FilteredWishes({
   return (
     <div className="wish-list">
       {shown.map((w) => (
-        <WishCard key={w.id} wish={w} onOpen={onOpen} />
+        <WishCard key={w.id} wish={w} onOpen={onOpen} onShare={(x) => void shareWish(x)} />
       ))}
     </div>
   )

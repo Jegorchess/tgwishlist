@@ -4,11 +4,14 @@ from dataclasses import dataclass
 from aiogram import F, Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings, get_settings
 from app.db import get_sessionmaker
+from app.models import User
 from app.services.access import has_access, is_blocked, redeem_invite
+from app.services.share import app_url_for_person, shared_user_id
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -23,10 +26,15 @@ BLOCKED = "Доступ закрито. Звернись до того, хто �
 FAILED = "Щось пішло не так. Спробуй ще раз трохи пізніше."
 
 
+SHARED_LIST = "Тобі поділилися хотєлками 🎁 Натисни кнопку, щоб подивитися."
+
+
 @dataclass(frozen=True)
 class StartReply:
     text: str
     show_app_button: bool
+    # Open the Mini App on this person's list (a shared link).
+    person_id: int | None = None
 
 
 async def start_reply(
@@ -36,12 +44,17 @@ async def start_reply(
     code: str | None,
     first_name: str | None = None,
 ) -> StartReply:
-    """What the bot answers to ``/start`` or ``/start <invite code>``."""
+    """What the bot answers to ``/start``, ``/start <invite code>`` or ``/start list_<id>``."""
+    shared = shared_user_id(code)
     if await has_access(session, settings, telegram_id):
+        if shared is not None:
+            own_id = await session.scalar(select(User.id).where(User.telegram_id == telegram_id))
+            if shared != own_id:  # my own link: just the normal greeting
+                return StartReply(SHARED_LIST, True, shared)
         return StartReply(WELCOME, True)
     if await is_blocked(session, telegram_id):
         return StartReply(BLOCKED, False)
-    if not code:
+    if not code or shared is not None:  # a shared list never grants access
         return StartReply(PRIVATE, False)
     if await redeem_invite(session, telegram_id, code, first_name):
         return StartReply(JOINED, True)
@@ -74,7 +87,10 @@ async def start(message: Message, command: CommandObject) -> None:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="🎁 Відкрити Хотєлочки", web_app=WebAppInfo(url=settings.webapp_url)
+                        text="🎁 Відкрити Хотєлочки",
+                        web_app=WebAppInfo(
+                            url=app_url_for_person(settings.webapp_url, reply.person_id)
+                        ),
                     )
                 ]
             ]

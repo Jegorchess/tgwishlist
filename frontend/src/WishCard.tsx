@@ -58,16 +58,49 @@ interface Props {
   onOpen?: (wish: Wish) => void
   /** Extra controls at the bottom of the card (e.g. «Я дарую»). */
   footer?: ReactNode
+  /** Shows the standard share icon in the corner (my own active wishes). */
+  onShare?: (wish: Wish) => void
 }
 
-export default function WishCard({ wish, onOpen, footer }: Props) {
+/** The usual "share" glyph: a box with an arrow going up. */
+function ShareIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M12 3v12M7.5 7.5 12 3l4.5 4.5M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export default function WishCard({ wish, onOpen, footer, onShare }: Props) {
   const [expanded, setExpanded] = useState(false)
   const priority = PRIORITIES.find((p) => p.value === wish.priority)
 
   return (
     // The title button is stretched over the whole card (CSS ::after), so tapping anywhere
     // opens editing; the description toggle and the link sit above it as separate controls.
-    <article className={onOpen ? 'wish-card clickable' : 'wish-card'}>
+    <article
+      className={['wish-card', onOpen && 'clickable', onShare && 'shareable']
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {onShare && (
+        <button
+          type="button"
+          className="share-icon above-card-link"
+          aria-label={`Поділитися «${wish.title}»`}
+          title="Поділитися"
+          onClick={() => onShare(wish)}
+        >
+          <ShareIcon />
+        </button>
+      )}
       <WishPhoto wish={wish} />
       <div className="wish-body">
         <h3 className="wish-title">

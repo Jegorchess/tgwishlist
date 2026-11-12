@@ -152,6 +152,8 @@ export const api = {
   archive: () => request<Wish[]>('/api/wishes/archive'),
   markReceived: (id: number) => request<Wish>(`/api/wishes/${id}/received`, { method: 'POST' }),
   restoreWish: (id: number) => request<Wish>(`/api/wishes/${id}/restore`, { method: 'POST' }),
+  /** A t.me link to my list (opens the bot, which opens the app on my wishes). */
+  shareLink: () => request<{ link: string }>('/api/share-link'),
   /** Own wishes, already sorted: priority first, newest first. */
   myWishes: () => request<Wish[]>('/api/wishes'),
   /** Photos need the auth header, so they are fetched as a Blob rather than via <img src>. */

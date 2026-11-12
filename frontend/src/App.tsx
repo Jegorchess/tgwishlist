@@ -7,6 +7,7 @@ import Logo from './Logo'
 import MyReservations from './MyReservations'
 import PeopleList from './PeopleList'
 import PersonWishes from './PersonWishes'
+import { sharedPersonId } from './share'
 import WishEditor from './WishEditor'
 import WishList from './WishList'
 
@@ -51,16 +52,32 @@ export default function App() {
       })
   }, [])
 
+  // Opened from a shared link (?person=<id>): show that person's list right away.
+  const openSharedList = useCallback((profile: Me) => {
+    const id = sharedPersonId()
+    if (id === null || id === profile.id) return // my own link: home is my list
+    api
+      .people()
+      .then((people) => {
+        const person = people.find((p) => p.id === id)
+        if (person) setView({ name: 'person', person })
+        else setNotice('Цей список недоступний')
+      })
+      .catch(() => setNotice('⚠️ Не вдалося відкрити список, яким поділилися'))
+  }, [])
+
   useEffect(() => {
     api
       .me()
       .then((profile) => {
         setMe(profile)
         // Everything else is closed without access (403), so don't even ask.
-        if (profile.has_access) loadWishes()
+        if (!profile.has_access) return
+        loadWishes()
+        openSharedList(profile)
       })
       .catch((e: Error) => setError(e.message))
-  }, [loadWishes])
+  }, [loadWishes, openSharedList])
 
   useEffect(() => {
     const recheck = () => {
