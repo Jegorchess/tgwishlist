@@ -733,3 +733,79 @@ label.link {
 .danger-link {
   color: var(--danger);
 }
+
+/* --- admin menu (☰) ------------------------------------------------------------ */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.burger,
+.menu-close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--field-bg);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+  overscroll-behavior: contain;
+  animation: fade-in 0.15s ease;
+}
+
+.menu-panel {
+  box-sizing: border-box;
+  width: min(360px, 88vw);
+  height: 100%;
+  padding: 16px;
+  /* Keep the header clear of notches / Telegram fullscreen status bar. */
+  padding-top: max(16px, env(safe-area-inset-top), var(--tg-content-safe-area-inset-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  color: var(--text);
+  animation: slide-in 0.2s ease;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-overlay,
+  .menu-panel {
+    animation: none;
+  }
+}
