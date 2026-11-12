@@ -96,10 +96,10 @@ export default function App() {
     [loadWishes],
   )
   const onWishSaved = useCallback(
-    () => backToList(editing ? '✅ Зміни збережено' : '✅ Бажання додано'),
+    () => backToList(editing ? '✅ Зміни збережено' : '✅ Хотєлку додано'),
     [backToList, editing],
   )
-  const onWishDeleted = useCallback(() => backToList('🗑 Бажання видалено'), [backToList])
+  const onWishDeleted = useCallback(() => backToList('🗑 Хотєлку видалено'), [backToList])
 
   if (view.name === 'person') {
     return (
@@ -144,7 +144,7 @@ export default function App() {
           </p>
           <h2>Доступ лише за запрошенням</h2>
           <p className="hint">
-            Це приватний вішліст для рідних і друзів. Попроси посилання-запрошення в того, хто тебе
+            Це приватні Хотєлочки для рідних і друзів. Попроси посилання-запрошення в того, хто тебе
             сюди покликав, і відкрий його в Telegram.
           </p>
         </section>

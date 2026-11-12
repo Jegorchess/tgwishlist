@@ -21,7 +21,7 @@ export function SearchBox({ value, onChange }: { value: string; onChange: (v: st
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="🔍 Пошук за назвою чи описом"
-        aria-label="Пошук бажань"
+        aria-label="Пошук хотєлок"
       />
     </div>
   )

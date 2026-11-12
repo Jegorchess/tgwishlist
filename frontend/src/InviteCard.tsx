@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api'
 import { confirmDialog, haptic, openTelegramLink } from './telegram'
 
-const SHARE_TEXT = 'Приєднуйся до нашого вішліста 🎁'
+const SHARE_TEXT = 'Приєднуйся до наших Хотєлочок 🎁'
 
 /** Admin only: the invite link for relatives and friends. */
 export default function InviteCard() {

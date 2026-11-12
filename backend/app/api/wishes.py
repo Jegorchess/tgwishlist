@@ -215,7 +215,7 @@ async def remove_wish(
     _remove_file(Path(settings.media_dir), await delete_wish(session, wish))
     if gifter is not None and await has_access(session, settings, gifter.telegram_id):
         # The owner never learns about the reservation; only the gifter is told.
-        text = f"{user.first_name} видалив(ла) бажання «{title}», яке ти бронював(ла)."
+        text = f"{user.first_name} видалив(ла) хотєлку «{title}», яку ти бронював(ла)."
         background.add_task(notifier.send, gifter.telegram_id, text)
 
 

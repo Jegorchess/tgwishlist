@@ -13,10 +13,12 @@ from app.services.access import has_access, is_blocked, redeem_invite
 router = Router()
 log = logging.getLogger(__name__)
 
-WELCOME = "Привіт! Це вішліст для рідних і друзів. Натисни кнопку, щоб відкрити застосунок."
-JOINED = "Вітаю! Тепер у тебе є доступ до вішліста 🎁"
+WELCOME = (
+    "Привіт! Це Хотєлочки — вішліст для рідних і друзів. Натисни кнопку, щоб відкрити застосунок."
+)
+JOINED = "Вітаю! Тепер у тебе є доступ до Хотєлочок 🎁"
 INVALID_INVITE = "Посилання недійсне. Попроси нове в того, хто тебе запросив."
-PRIVATE = "Це приватний вішліст. Доступ — лише за запрошенням."
+PRIVATE = "Це приватні Хотєлочки. Доступ — лише за запрошенням."
 BLOCKED = "Доступ закрито. Звернись до того, хто тебе запросив."
 FAILED = "Щось пішло не так. Спробуй ще раз трохи пізніше."
 
@@ -72,7 +74,7 @@ async def start(message: Message, command: CommandObject) -> None:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="🎁 Відкрити вішліст", web_app=WebAppInfo(url=settings.webapp_url)
+                        text="🎁 Відкрити Хотєлочки", web_app=WebAppInfo(url=settings.webapp_url)
                     )
                 ]
             ]

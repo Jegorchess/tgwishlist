@@ -26,7 +26,7 @@ export default function ReservationControl({ wish, onChange, onConflict }: Props
     } catch (err) {
       haptic('error')
       if (err instanceof ApiError && err.status === 409) {
-        setMessage('Хтось щойно забронював це бажання')
+        setMessage('Хтось щойно забронював цю хотєлку')
         onConflict()
       } else if (err instanceof ApiError && err.status === 404) {
         onConflict() // the wish was just deleted: the reloaded list won't have it

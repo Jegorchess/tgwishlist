@@ -201,7 +201,7 @@ async def test_deleting_reserved_wish_notifies_gifter(client, notifier):
     resp = await client.delete(f"/api/wishes/{wish['id']}", headers=as_user(OLENA))
 
     assert resp.status_code == 204
-    assert notifier.sent == [(ME["id"], "Олена видалив(ла) бажання «Сукня», яке ти бронював(ла).")]
+    assert notifier.sent == [(ME["id"], "Олена видалив(ла) хотєлку «Сукня», яку ти бронював(ла).")]
     assert (await client.get("/api/reservations", headers=as_user(ME))).json() == []
 
 
