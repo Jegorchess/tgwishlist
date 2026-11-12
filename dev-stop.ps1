@@ -5,15 +5,21 @@
 
 $pidFile = Join-Path $PSScriptRoot '.dev\pids.txt'
 if (-not (Test-Path $pidFile)) {
-    Write-Host 'Nothing to stop (no .dev\pids.txt).'
+    Write-Host 'Nothing to stop.'
     exit 0
 }
 
-foreach ($id in Get-Content $pidFile) {
-    if ($id -match '^\d+$') {
+$stopped = 0
+foreach ($line in Get-Content $pidFile) {
+    $id, $ticks = $line -split ' '
+    $p = Get-Process -Id $id -ErrorAction SilentlyContinue
+    # Only the exact process dev.ps1 started: after a reboot the PID may belong to
+    # something else entirely.
+    if ($p -and $ticks -and $p.StartTime.Ticks -eq [long]$ticks) {
         # /T also stops children: uvicorn, node, cloudflared, the bot.
         taskkill /PID $id /T /F *> $null
+        $stopped++
     }
 }
 Remove-Item $pidFile
-Write-Host 'Stopped backend, frontend, tunnel and bot.'
+Write-Host "Stopped $stopped window(s): backend, frontend, tunnel, bot."

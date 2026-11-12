@@ -20,8 +20,10 @@ powershell -ExecutionPolicy Bypass -File .\dev-stop.ps1  # зупинити вс
 ## Запуск локально
 Потрібно: Git, Node.js 22, [uv](https://docs.astral.sh/uv/) (сам поставить Python 3.12), Docker Desktop.
 
-1. Скопіюй `.env.example` у `backend/.env`, впиши `BOT_TOKEN`, `DEV_AUTH=true` і `ADMIN_TELEGRAM_IDS=<твій id>,1`
-   (`1` — це dev-користувач браузерного режиму; на сервері його не додавай).
+1. Скопіюй `.env.example` у `backend/.env`, впиши `BOT_TOKEN` і `ADMIN_TELEGRAM_IDS=<твій id>`.
+   Для перевірки в звичайному браузері (без Telegram) можна тимчасово ввімкнути `DEV_AUTH=true`
+   і додати `1` (dev-користувач) в `ADMIN_TELEGRAM_IDS` — **але лише без тунелю**: через тунель
+   це дало б будь-кому вхід адміном. `dev.ps1` відмовиться стартувати, якщо `DEV_AUTH` увімкнено.
 2. База даних (PostgreSQL у Docker, доступна лише з цього комп'ютера):
    ```bash
    docker compose up -d db   # порт 5433 на localhost
