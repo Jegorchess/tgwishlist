@@ -3,6 +3,7 @@ import { ACCESS_LOST, api, type Me, type Person, type Wish } from './api'
 import Avatar from './Avatar'
 import { insideTelegram } from './telegram'
 import AdminMenu from './AdminMenu'
+import Logo from './Logo'
 import MyReservations from './MyReservations'
 import PeopleList from './PeopleList'
 import PersonWishes from './PersonWishes'
@@ -127,7 +128,7 @@ export default function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>🎁 Хотєлочки</h1>
+        <Logo />
         {me?.has_access && me.is_admin && <AdminMenu />}
       </header>
       {notice && (

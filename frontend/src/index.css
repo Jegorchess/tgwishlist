@@ -809,3 +809,67 @@ label.link {
     animation: none;
   }
 }
+
+/* --- logo ------------------------------------------------------------------ */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  color: var(--text);
+}
+
+.logo-text {
+  /* Handwritten, with a system fallback while the font loads / offline. */
+  font-family: 'Caveat', 'Segoe Script', 'Comic Sans MS', cursive;
+  font-size: 2.3rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  transform: rotate(-2deg);
+}
+
+.logo-star {
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.logo-star-body {
+  fill: #ffc83d;
+  stroke: #f0a500;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.logo-trail {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.logo-trail-soft {
+  opacity: 0.5;
+}
+
+/* A tiny twinkle when the app opens. */
+@keyframes twinkle {
+  0% {
+    transform: scale(0.6) rotate(-20deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1) rotate(4deg);
+    opacity: 1;
+  }
+}
+
+.logo-star {
+  animation: twinkle 0.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-star {
+    animation: none;
+  }
+}
