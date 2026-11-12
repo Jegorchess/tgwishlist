@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { Wish } from './api'
+import { filterWishes, SEARCH_THRESHOLD, SearchBox } from './search'
 import WishCard from './WishCard'
 
 interface Props {
@@ -10,6 +12,8 @@ interface Props {
 }
 
 export default function WishList({ wishes, error, onRetry, onAdd, onOpen }: Props) {
+  const [query, setQuery] = useState('')
+
   if (error) {
     return (
       <section className="wish-list-state">
@@ -47,11 +51,33 @@ export default function WishList({ wishes, error, onRetry, onAdd, onOpen }: Prop
       </button>
       <h2 className="section-title">Мої бажання</h2>
       <p className="hint small">Натисни на бажання, щоб змінити або видалити його</p>
-      <div className="wish-list">
-        {wishes.map((w) => (
-          <WishCard key={w.id} wish={w} onOpen={onOpen} />
-        ))}
-      </div>
+      {wishes.length > SEARCH_THRESHOLD && <SearchBox value={query} onChange={setQuery} />}
+      <FilteredWishes wishes={wishes} query={query} onOpen={onOpen} />
     </section>
+  )
+}
+
+function FilteredWishes({
+  wishes,
+  query,
+  onOpen,
+}: {
+  wishes: Wish[]
+  query: string
+  onOpen: (wish: Wish) => void
+}) {
+  const shown = filterWishes(wishes, query)
+  if (shown.length === 0)
+    return (
+      <p className="hint wish-list-state" role="status">
+        Нічого не знайдено
+      </p>
+    )
+  return (
+    <div className="wish-list">
+      {shown.map((w) => (
+        <WishCard key={w.id} wish={w} onOpen={onOpen} />
+      ))}
+    </div>
   )
 }
