@@ -3,6 +3,7 @@ import { ACCESS_LOST, api, type Me, type Person, type Wish } from './api'
 import Avatar from './Avatar'
 import { insideTelegram } from './telegram'
 import AdminMenu from './AdminMenu'
+import Logo from './Logo'
 import MyReservations from './MyReservations'
 import PeopleList from './PeopleList'
 import PersonWishes from './PersonWishes'
@@ -96,10 +97,10 @@ export default function App() {
     [loadWishes],
   )
   const onWishSaved = useCallback(
-    () => backToList(editing ? '✅ Зміни збережено' : '✅ Бажання додано'),
+    () => backToList(editing ? '✅ Зміни збережено' : '✅ Хотєлку додано'),
     [backToList, editing],
   )
-  const onWishDeleted = useCallback(() => backToList('🗑 Бажання видалено'), [backToList])
+  const onWishDeleted = useCallback(() => backToList('🗑 Хотєлку видалено'), [backToList])
 
   if (view.name === 'person') {
     return (
@@ -127,7 +128,7 @@ export default function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>🎁 Вішліст</h1>
+        <Logo />
         {me?.has_access && me.is_admin && <AdminMenu />}
       </header>
       {notice && (
@@ -144,7 +145,7 @@ export default function App() {
           </p>
           <h2>Доступ лише за запрошенням</h2>
           <p className="hint">
-            Це приватний вішліст для рідних і друзів. Попроси посилання-запрошення в того, хто тебе
+            Це приватні Хотєлочки для рідних і друзів. Попроси посилання-запрошення в того, хто тебе
             сюди покликав, і відкрий його в Telegram.
           </p>
         </section>
@@ -162,7 +163,7 @@ export default function App() {
               className={tab === 'mine' ? 'active' : ''}
               onClick={() => setTab('mine')}
             >
-              Мої бажання
+              Мої хотєлки
             </button>
             <button
               type="button"
@@ -170,7 +171,7 @@ export default function App() {
               className={tab === 'people' ? 'active' : ''}
               onClick={() => setTab('people')}
             >
-              Люди
+              Хотєлки інших
             </button>
           </div>
           {tab === 'mine' ? (

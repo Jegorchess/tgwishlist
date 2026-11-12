@@ -10,9 +10,9 @@ const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|heic|heif)$/i
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 
 export const PRIORITIES: { value: Priority; label: string }[] = [
-  { value: 1, label: 'Дуже хочу' },
-  { value: 2, label: 'Хочу' },
-  { value: 3, label: 'Було б непогано' },
+  { value: 1, label: 'Жесть як хочу' },
+  { value: 2, label: 'Було б круто' },
+  { value: 3, label: 'Хочу, але переживу' },
 ]
 
 export interface WishFormValues {

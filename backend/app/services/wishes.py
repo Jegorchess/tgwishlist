@@ -73,7 +73,7 @@ async def get_wish_for_reader(
     session: AsyncSession, settings: Settings, wish_id: int, reader: User
 ) -> WishItem | None:
     """A wish ``reader`` may see: any of their own, or someone's active wish while that
-    owner has access (same rule as «Люди»). Received wishes are private to the owner.
+    owner has access (same rule as «Хотєлки інших»). Received wishes are private to the owner.
 
     The reader's own access is checked by the caller (MemberUser).
     """

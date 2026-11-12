@@ -77,7 +77,7 @@ export default function PersonWishes({ person, onBack }: Props) {
         </div>
       )}
       {wishes && wishes.length === 0 && (
-        <p className="hint wish-list-state">Поки що тут немає бажань</p>
+        <p className="hint wish-list-state">Поки що тут немає хотєлок</p>
       )}
       {wishes && wishes.length > SEARCH_THRESHOLD && (
         <SearchBox value={query} onChange={setQuery} />

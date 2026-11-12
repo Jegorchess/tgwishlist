@@ -2,11 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Person } from './api'
 import Avatar from './Avatar'
 
-/** "1 бажання", "3 бажання", "5 бажань", "21 бажання" */
+/** "1 хотєлка", "3 хотєлки", "5 хотєлок", "21 хотєлка", "12 хотєлок" */
 export function wishCountLabel(n: number): string {
   const lastTwo = n % 100
   const last = n % 10
-  const word = last >= 1 && last <= 4 && !(lastTwo >= 11 && lastTwo <= 14) ? 'бажання' : 'бажань'
+  let word = 'хотєлок'
+  if (lastTwo < 11 || lastTwo > 14) {
+    if (last === 1) word = 'хотєлка'
+    else if (last >= 2 && last <= 4) word = 'хотєлки'
+  }
   return `${n} ${word}`
 }
 
@@ -60,7 +64,7 @@ export default function PeopleList({ onOpen }: { onOpen: (person: Person) => voi
   if (people.length === 0) {
     return (
       <section className="wish-list-state">
-        <p className="hint">Тут з'являться рідні та друзі, коли додадуть свої бажання</p>
+        <p className="hint">Тут з'являться рідні та друзі, коли додадуть свої хотєлки</p>
       </section>
     )
   }

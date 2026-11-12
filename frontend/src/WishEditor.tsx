@@ -105,7 +105,7 @@ export default function WishEditor({
         // A plain-text reason comes only from the photo check (e.g. "Файл не є зображенням").
         setErrors({ photo: err.detailText })
       else if (err instanceof ApiError && err.status === 404)
-        setSubmitError('Цього бажання вже немає. Повернись до списку.')
+        setSubmitError('Цієї хотєлки вже немає. Повернись до списку.')
       else if (err instanceof ApiError && err.status === 422)
         setSubmitError('Сервер не прийняв дані. Перевір поля і спробуй ще раз.')
       else setSubmitError('Не вдалося зберегти. Перевір з’єднання і спробуй ще раз.')
@@ -123,15 +123,15 @@ export default function WishEditor({
     try {
       if (wish.received_at) {
         await api.restoreWish(wish.id)
-        onArchiveChanged('↩️ Бажання повернуто в список')
+        onArchiveChanged('↩️ Хотєлку повернуто в список')
       } else {
         await api.markReceived(wish.id)
         haptic('success')
-        onArchiveChanged('🎉 Чудово! Бажання перенесено в архів')
+        onArchiveChanged('🎉 Чудово! Хотєлку перенесено в архів')
       }
     } catch {
       haptic('error')
-      setSubmitError('Не вдалося оновити бажання. Перевір з’єднання і спробуй ще раз.')
+      setSubmitError('Не вдалося оновити хотєлку. Перевір з’єднання і спробуй ще раз.')
     } finally {
       busyRef.current = false
       setBusy(null)
@@ -143,7 +143,7 @@ export default function WishEditor({
     busyRef.current = true // also blocks a second tap while the dialog is open
     setBusy('delete')
     setSubmitError(null)
-    if (!(await confirmDialog(`Видалити бажання «${wish.title}»?`, 'Видалити'))) {
+    if (!(await confirmDialog(`Видалити хотєлку «${wish.title}»?`, 'Видалити'))) {
       busyRef.current = false
       setBusy(null)
       return
@@ -177,10 +177,10 @@ export default function WishEditor({
 
   return (
     <form ref={formRef} className="wish-form" onSubmit={submit} noValidate>
-      <h2>{editing ? 'Редагування' : 'Нове бажання'}</h2>
+      <h2>{editing ? 'Редагування' : 'Нова хотєлка'}</h2>
 
       <label className="field">
-        <span>Назва *</span>
+        <span>Шо хош? *</span>
         <input
           value={values.title}
           onChange={(e) => set('title', e.target.value)}
@@ -193,7 +193,7 @@ export default function WishEditor({
       </label>
 
       <label className="field">
-        <span>Вартість, zł</span>
+        <span>Сіко? (zł)</span>
         <input
           value={values.price}
           onChange={(e) => set('price', e.target.value)}
@@ -205,7 +205,7 @@ export default function WishEditor({
       </label>
 
       <fieldset className="field">
-        <span>Пріоритет</span>
+        <span>Точно треба?</span>
         <div className="segmented" role="radiogroup">
           {PRIORITIES.map((p) => (
             <button
@@ -332,7 +332,7 @@ export default function WishEditor({
 
       {editing && (
         <button type="button" className="danger" onClick={remove} disabled={saving}>
-          🗑 Видалити бажання
+          🗑 Видалити хотєлку
         </button>
       )}
     </form>

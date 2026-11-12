@@ -84,12 +84,10 @@ export default function WishCard({ wish, onOpen, footer }: Props) {
             wish.title
           )}
         </h3>
-        <div className="wish-meta">
-          {priority && (
-            <span className={`priority-badge priority-${wish.priority}`}>{priority.label}</span>
-          )}
-          {wish.price !== null && <span className="wish-price">{formatPrice(wish.price)}</span>}
-        </div>
+        {wish.price !== null && <span className="wish-price">{formatPrice(wish.price)}</span>}
+        {priority && (
+          <span className={`priority-badge priority-${wish.priority}`}>{priority.label}</span>
+        )}
         {wish.description && (
           <button
             type="button"

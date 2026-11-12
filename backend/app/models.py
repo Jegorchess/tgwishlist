@@ -34,9 +34,9 @@ class User(Base):
 class Priority(IntEnum):
     """Lower value = more wanted (used for sorting)."""
 
-    HIGH = 1  # «Дуже хочу»
-    MEDIUM = 2  # «Хочу»
-    LOW = 3  # «Було б непогано»
+    HIGH = 1  # «Жесть як хочу»
+    MEDIUM = 2  # «Було б круто»
+    LOW = 3  # «Хочу, але переживу»
 
 
 class WishItem(Base):
