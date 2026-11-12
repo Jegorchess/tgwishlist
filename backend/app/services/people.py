@@ -40,7 +40,7 @@ async def list_people(session: AsyncSession, settings: Settings, viewer: User) -
     wish_count = func.count(WishItem.id)
     rows = await session.execute(
         select(User, wish_count)
-        .join(WishItem, WishItem.owner_id == User.id)
+        .join(WishItem, (WishItem.owner_id == User.id) & WishItem.received_at.is_(None))
         .where(User.id != viewer.id, has_access_condition(settings))
         .group_by(User.id)
     )

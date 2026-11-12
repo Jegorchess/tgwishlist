@@ -20,10 +20,18 @@ interface Props {
   wish?: Wish
   onSaved: (wish: Wish) => void
   onDeleted: () => void
+  /** Moved to or from the archive; the message says which. */
+  onArchiveChanged: (message: string) => void
   onCancel: () => void
 }
 
-export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props) {
+export default function WishEditor({
+  wish,
+  onSaved,
+  onDeleted,
+  onArchiveChanged,
+  onCancel,
+}: Props) {
   const editing = wish !== undefined
   const [values, setValues] = useState<WishFormValues>(() => (wish ? fromWish(wish) : emptyWishForm))
   const existingPhoto = useWishPhoto(wish)
@@ -101,6 +109,29 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
       else if (err instanceof ApiError && err.status === 422)
         setSubmitError('Сервер не прийняв дані. Перевір поля і спробуй ще раз.')
       else setSubmitError('Не вдалося зберегти. Перевір з’єднання і спробуй ще раз.')
+    } finally {
+      busyRef.current = false
+      setBusy(null)
+    }
+  }
+
+  async function toggleReceived() {
+    if (!wish || busyRef.current) return
+    busyRef.current = true
+    setBusy('delete') // not a save: the bottom button is just disabled
+    setSubmitError(null)
+    try {
+      if (wish.received_at) {
+        await api.restoreWish(wish.id)
+        onArchiveChanged('↩️ Бажання повернуто в список')
+      } else {
+        await api.markReceived(wish.id)
+        haptic('success')
+        onArchiveChanged('🎉 Чудово! Бажання перенесено в архів')
+      }
+    } catch {
+      haptic('error')
+      setSubmitError('Не вдалося оновити бажання. Перевір з’єднання і спробуй ще раз.')
     } finally {
       busyRef.current = false
       setBusy(null)
@@ -287,6 +318,17 @@ export default function WishEditor({ wish, onSaved, onDeleted, onCancel }: Props
           Скасувати
         </button>
       </div>
+
+      {wish && (
+        <button
+          type="button"
+          className="secondary received-button"
+          onClick={toggleReceived}
+          disabled={saving}
+        >
+          {wish.received_at ? '↩️ Повернути в список' : '🎉 Отримано'}
+        </button>
+      )}
 
       {editing && (
         <button type="button" className="danger" onClick={remove} disabled={saving}>

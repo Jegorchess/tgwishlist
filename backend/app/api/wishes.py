@@ -31,7 +31,10 @@ from app.services.wishes import (
     delete_wish,
     get_own_wish,
     get_wish_for_reader,
+    list_archived_wishes,
     list_own_wishes,
+    mark_received,
+    restore_wish,
     update_wish,
 )
 
@@ -120,6 +123,7 @@ class WishOut(BaseModel):
     has_photo: bool
     photo_version: str | None
     created_at: datetime
+    received_at: datetime | None = None
 
 
 @router.get("")
@@ -215,14 +219,52 @@ async def remove_wish(
         background.add_task(notifier.send, gifter.telegram_id, text)
 
 
+@router.get("/archive")
+async def archived_wishes(user: MemberUser, session: SessionDep) -> list[WishOut]:
+    """My received wishes (the archive)."""
+    return [WishOut.model_validate(w) for w in await list_archived_wishes(session, user)]
+
+
+@router.post("/{wish_id}/received")
+async def receive_wish(
+    wish_id: int,
+    user: MemberUser,
+    session: SessionDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+    background: BackgroundTasks,
+    notifier: Annotated[Notifier, Depends(get_notifier)],
+) -> WishOut:
+    """«Отримано»: the wish moves to my archive and its reservation is closed."""
+    wish = await _own_wish_or_404(session, wish_id, user)
+    if wish.received_at is None:
+        gifter = await reserver_of(session, wish.id)
+        title = wish.title
+        await mark_received(session, wish)
+        if gifter is not None and await has_access(session, settings, gifter.telegram_id):
+            # Thanks go to the gifter; the owner still doesn't learn who it was.
+            text = f"🎉 {user.first_name} отримав(ла) «{title}»"
+            background.add_task(notifier.send, gifter.telegram_id, text)
+    await session.refresh(wish)
+    return WishOut.model_validate(wish)
+
+
+@router.post("/{wish_id}/restore")
+async def restore_received_wish(wish_id: int, user: MemberUser, session: SessionDep) -> WishOut:
+    """Back from the archive to the active list."""
+    wish = await _own_wish_or_404(session, wish_id, user)
+    await restore_wish(session, wish)
+    await session.refresh(wish)
+    return WishOut.model_validate(wish)
+
+
 @router.get("/{wish_id}/photo", response_class=FileResponse)
 async def wish_photo(
     wish_id: int,
-    _: MemberUser,  # any user with access may see any photo
+    user: MemberUser,
     session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> FileResponse:
-    wish = await get_wish_for_reader(session, settings, wish_id)
+    wish = await get_wish_for_reader(session, settings, wish_id, user)
     path = Path(settings.media_dir) / wish.photo_name if wish and wish.photo_name else None
     if path is None or not path.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found")

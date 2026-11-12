@@ -55,6 +55,8 @@ class WishItem(Base):
     description: Mapped[str | None] = mapped_column(Text)
     # File name inside settings.media_dir; never exposed directly.
     photo_name: Mapped[str | None] = mapped_column(String(64))
+    # Set when the owner marks the wish as received: it moves to their archive.
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @property
