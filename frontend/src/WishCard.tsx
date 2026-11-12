@@ -47,8 +47,21 @@ function WishPhoto({ wish }: { wish: Wish }) {
     <img className="wish-photo" src={src} alt="" />
   ) : (
     <div className="wish-photo wish-photo-placeholder" aria-hidden>
-      🎁
+      <GiftIcon />
     </div>
+  )
+}
+
+/** Line-art gift for wishes without a photo; drawn in the theme accent color. */
+function GiftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false">
+      <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3.5" y="8" width="17" height="4" rx="1" />
+        <path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12M12 8v12.5" />
+        <path d="M12 8c-1-2.6-4.5-3.6-4.5-1.3C7.5 8 10 8 12 8Zm0 0c1-2.6 4.5-3.6 4.5-1.3C16.5 8 14 8 12 8Z" />
+      </g>
+    </svg>
   )
 }
 

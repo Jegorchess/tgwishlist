@@ -245,8 +245,18 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--accent);
   background: var(--bg);
-  font-size: 2rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 18%, var(--bg)),
+    color-mix(in srgb, var(--accent) 6%, var(--bg))
+  );
+}
+
+.wish-photo-placeholder svg {
+  width: 55%;
+  height: 55%;
 }
 
 .wish-body {
