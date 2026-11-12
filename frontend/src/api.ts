@@ -50,7 +50,7 @@ export interface Person {
   wish_count: number
 }
 
-/** 1 = «Дуже хочу», 2 = «Хочу», 3 = «Було б непогано». */
+/** 1 = «Жесть як хочу», 2 = «Було б круто», 3 = «Хочу, але переживу». */
 export type Priority = 1 | 2 | 3
 
 export interface Wish {

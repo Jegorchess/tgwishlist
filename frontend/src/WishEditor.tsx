@@ -180,7 +180,7 @@ export default function WishEditor({
       <h2>{editing ? 'Редагування' : 'Нове бажання'}</h2>
 
       <label className="field">
-        <span>Назва *</span>
+        <span>Шо хош? *</span>
         <input
           value={values.title}
           onChange={(e) => set('title', e.target.value)}
@@ -193,7 +193,7 @@ export default function WishEditor({
       </label>
 
       <label className="field">
-        <span>Вартість, zł</span>
+        <span>Сіко? (zł)</span>
         <input
           value={values.price}
           onChange={(e) => set('price', e.target.value)}
@@ -205,7 +205,7 @@ export default function WishEditor({
       </label>
 
       <fieldset className="field">
-        <span>Пріоритет</span>
+        <span>Точно треба?</span>
         <div className="segmented" role="radiogroup">
           {PRIORITIES.map((p) => (
             <button

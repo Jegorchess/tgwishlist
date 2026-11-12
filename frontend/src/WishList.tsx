@@ -41,7 +41,7 @@ export default function WishList({ wishes, error, onRetry, onAdd, onOpen, archiv
         <section className="wish-list-state">
           <p className="hint">Тут поки порожньо — додай перше бажання</p>
           <button type="button" className="primary" onClick={onAdd}>
-            ➕ Додати бажання
+            ➕ Додати хотєлку
           </button>
         </section>
         <Archive wishes={archived} onOpen={onOpen} />
@@ -52,9 +52,9 @@ export default function WishList({ wishes, error, onRetry, onAdd, onOpen, archiv
   return (
     <section>
       <button type="button" className="primary" onClick={onAdd}>
-        ➕ Додати бажання
+        ➕ Додати хотєлку
       </button>
-      <h2 className="section-title">Мої бажання</h2>
+      <h2 className="section-title">Мої хотєлки</h2>
       <p className="hint small">Натисни на бажання, щоб змінити або видалити його</p>
       {wishes.length > SEARCH_THRESHOLD && <SearchBox value={query} onChange={setQuery} />}
       <FilteredWishes wishes={wishes} query={query} onOpen={onOpen} />

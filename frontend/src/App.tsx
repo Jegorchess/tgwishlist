@@ -127,7 +127,7 @@ export default function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>🎁 Вішліст</h1>
+        <h1>🎁 Хотєлочки</h1>
         {me?.has_access && me.is_admin && <AdminMenu />}
       </header>
       {notice && (
@@ -162,7 +162,7 @@ export default function App() {
               className={tab === 'mine' ? 'active' : ''}
               onClick={() => setTab('mine')}
             >
-              Мої бажання
+              Мої хотєлки
             </button>
             <button
               type="button"
@@ -170,7 +170,7 @@ export default function App() {
               className={tab === 'people' ? 'active' : ''}
               onClick={() => setTab('people')}
             >
-              Люди
+              Хотєлки інших
             </button>
           </div>
           {tab === 'mine' ? (
